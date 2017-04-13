@@ -5,10 +5,12 @@
 //
 // Parallel BFS
 
-#include <graph.h>
+#include "graph.h"
 #include <iostream>
 #include <mpi.h>
 #include <omp.h> 
+
+#define ROOT_RANK 0
 
 // TODO
 int shortestPath(Vertex start, Vertex end) {
@@ -63,7 +65,6 @@ int main(int argc, char **argv) {
   // wait until everyone is done
   MPI_Barrier(MPI_COMM_WORLD);
 
-  free(matrix);
   MPI_Finalize();
   return 0;
 }

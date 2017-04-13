@@ -12,17 +12,20 @@
 
 class Vertex {
   private:
-    static int count;
+    static int globalCount;
+    int id;
 
   public:
-    int id;
     int data;
     std::vector<Vertex> neighbors;
-    Vertex(void);
+    Vertex(void); // implicit destructor
     Vertex(int);
 
+    // assignment operator
+    Vertex& operator=(const Vertex&);
+
     int getNumNeighbors(void);
-    Vertex addNeighbor(Vertex)
+    Vertex addNeighbor(Vertex);
     Vertex addNewNeighbor(void);
     bool equals(Vertex);
     bool isNeighbor(Vertex);
@@ -33,10 +36,10 @@ class Vertex {
 class Path {
   public:
     std::vector<Vertex> vertices;
-    Path(void);
+    Path(void); // implicit destructor
     bool addVertex(Vertex);
     int getSize(void);
     void printPath(void);
-}
+};
 
 #endif

@@ -55,9 +55,10 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
   omp_size = omp_get_max_threads();
 
-  Graph graph = Graph(DIM); // build a graph of DIM x DIM size
+  Graph graph = Graph(DIM); // initialize a graph of DIM x DIM size
+
   if (mpi_rank == ROOT_RANK) {
-    graph.buildRandomGraph();
+    graph.buildRandomGraph(); // randomly adds edges
     graph.printAsDotGraph();
     //graph.printAsMatrix();
     //shortestPath(graph, 3, 7).printAsDotGraph();

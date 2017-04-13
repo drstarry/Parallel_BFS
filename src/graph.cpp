@@ -12,11 +12,13 @@
 #include <stdlib.h>
 #include <time.h>
 
+
 #ifdef _WIN32
 #define safeRand rand
 #else
 #define safeRand rand_r
 #endif
+
 
 // NOTE: size must be less than MAX_GRAPH_SIZE
 // constructs a new undirected graph represented using a symmetric sparse
@@ -41,6 +43,7 @@ bool Graph::isNeighbor(int vertex1, int vertex2) {
 }
 
 
+// gets the number of outgoing edges a specific
 //
 //        1 2 3 4 5
 //      -------------
@@ -51,7 +54,6 @@ bool Graph::isNeighbor(int vertex1, int vertex2) {
 //    5 | 0 0 1 1 0 |
 //      -------------
 //
-// gets the number of outgoing edges a specific
 int Graph::getNumNeighbors(int vertex) {
   int i, neighborCount = 0;
   for (i = 0; i < this->size; i++) {

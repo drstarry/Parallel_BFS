@@ -13,6 +13,7 @@
 
 #define MAX_GRAPH_SIZE 999
 
+
 class Graph {
   private:
     const int size;
@@ -29,6 +30,7 @@ class Graph {
     void printAsMatrix(void);
     void buildRandomGraph(void);
 };
+
 
 class Path {
   public:

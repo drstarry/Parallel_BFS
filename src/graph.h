@@ -9,37 +9,33 @@
 #define GRAPH_H
 
 #include <vector>
+#include <stdint.h>
 
-class Vertex {
+#define MAX_GRAPH_SIZE 999
+
+class Graph {
   private:
-    static int globalCount;
-    int id;
+    const int size;
+    uint8_t graph[MAX_GRAPH_SIZE][MAX_GRAPH_SIZE]; // initializes to {0, 0, ...}
 
   public:
-    int data;
-    std::vector<Vertex> neighbors;
-    Vertex(void); // implicit destructor
-    Vertex(int);
+    Graph(int size);
 
-    // assignment operator
-    Vertex& operator=(const Vertex&);
-
-    int getNumNeighbors(void);
-    Vertex addNeighbor(Vertex);
-    Vertex addNewNeighbor(void);
-    bool equals(Vertex);
-    bool isNeighbor(Vertex);
-    void printGraphAsDot(void);
-    void buildRandomGraph(int);
+    void addEdge(int, int);
+    bool isNeighbor(int, int);
+    int getNumNeighbors(int);
+    std::vector<int> getNeighbors(int);
+    void printAsDotGraph(void);
+    void buildRandomGraph(void);
 };
 
 class Path {
   public:
-    std::vector<Vertex> vertices;
+    std::vector<int> vertices;
     Path(void); // implicit destructor
-    bool addVertex(Vertex);
+    void addVertex(int);
     int getSize(void);
-    void printPath(void);
+    void printAsDotGraph(void);
 };
 
 #endif

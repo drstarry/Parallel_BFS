@@ -6,123 +6,127 @@
 // Parallel BFS
 
 #include "graph.h"
+#include <algorithm>
 #include <vector>
-#include <cstdio>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-int Vertex::globalCount = 0;
+#ifdef _WIN32
+#define safeRand rand
+#else
+#define safeRand rand_r
+#endif
 
-// constructor to build a new vertex with 0 data
-Vertex::Vertex(void) :
-  data(0), id(++globalCount) {
+// NOTE: size must be less than MAX_GRAPH_SIZE
+// constructs a new undirected graph represented using a symmetric sparse
+// adjacency matrix
+Graph::Graph(int size) :
+  size(size) {
 }
 
-// constructor to build a new vertex with some data
-Vertex::Vertex(int data) :
-  data(data), id(++globalCount) {
-}
 
-// assignment operator. used when pulling stuff out of a vector
-Vertex& Vertex::operator=(const Vertex& other) {
-  this->id = other.id;
-  this->data = other.data;
-  this->neighbors.clear();
-  for (int i = 0; i < other.neighbors.size(); i++) {
-    this->neighbors.push_back(other.neighbors[i]);
+// adds an edge between two vertices
+void Graph::addEdge(int vertex1, int vertex2) {
+  if (vertex1 != vertex2) {
+    this->graph[vertex1][vertex2] = 1;
+    this->graph[vertex2][vertex1] = 1;
   }
-  return *this;
 }
 
-// returns the number of edges this vertex has
-int Vertex::getNumNeighbors() {
-  return this->neighbors.size();
+
+// returns if the two vertices have a connecting edge
+bool Graph::isNeighbor(int vertex1, int vertex2) {
+  return this->graph[vertex1][vertex2] == 1;
 }
 
-// create an edge between an existing vertex and this vertex
-Vertex Vertex::addNeighbor(Vertex node) {
-  this->neighbors.push_back(node);
-  return node;
-}
 
-// create an edge between a new vertex and this vertex
-Vertex Vertex::addNewNeighbor() {
-  Vertex newNode = Vertex();
-  this->neighbors.push_back(newNode);
-  return newNode;
-}
-
-// compares two vertices to see if they are the same vertex
-bool Vertex::equals(Vertex node) {
-  return this->id == node.id &&
-         this->getNumNeighbors() == node.getNumNeighbors();
-}
-
-// returns if the provided vertex is one of this vertex's neighbors
-bool Vertex::isNeighbor(Vertex node) {
-  for (int i = 0; i < this->getNumNeighbors(); i++) {
-    if (node.equals(this->neighbors[i])) {
-      return true;
+//
+//        1 2 3 4 5
+//      -------------
+//    1 | 0 1 0 1 0 |
+//    2 | 1 0 0 1 0 |
+//    3 | 0 0 0 1 1 |
+//    4 | 1 1 1 0 1 |
+//    5 | 0 0 1 1 0 |
+//      -------------
+//
+// gets the number of outgoing edges a specific
+int Graph::getNumNeighbors(int vertex) {
+  int i, neighborCount = 0;
+  for (i = 0; i < this->size; i++) {
+    if (this->isNeighbor(vertex, i)) {
+      neighborCount++;
     }
   }
-  return false;
+  return neighborCount;
 }
 
+
+// returns a vector of the vertices connected to the provided vertex
+std::vector<int> Graph::getNeighbors(int vertex) {
+  std::vector<int> neighbors;
+  for (int i = 0; i < this->size; i++) {
+    if (this->isNeighbor(vertex, i)) {
+      neighbors.push_back(i);
+    }
+  }
+  return neighbors;
+}
+
+
 // writes a dot graph representation of this graph to stdout
-// TODO: right now this just gets the immediate neighbors, not the full graph
-void Vertex::printGraphAsDot(void) {
+void Graph::printAsDotGraph(void) {
+  int i, j;
   printf("graph graphname {\n");
-  // use bfs!
-  for (int i = 0; i < this->getNumNeighbors(); i++) {
-    printf("%d -- %d;\n", this->id, this->neighbors[i].id);
+  for (i = 0; i < this->size; i++) {
+    for (j = 0; j < i; j++) {
+      if (this->isNeighbor(i, j)) {
+        printf("%d -- %d;\n", i, j);
+      }
+    }
   }
   printf("}\n");
 }
 
-void Vertex::buildRandomGraph(int maxDepth) {
-  int i, depth = 0, r1 = 4, r2 = 5; // TODO: r1 should be random < maxDepth
-  Vertex node;
-  std::vector<Vertex> toProcess;
-  std::vector<Vertex> processed;
-  processed.push_back(*this);
 
-  // initialize root node with some neighbors
-  for (i = 0; i < r1; i++) {
-    // add neighbors to front of queue as they are added as neighbors
-    toProcess.insert(toProcess.begin(), this->addNewNeighbor());
-  }
-
-  while (toProcess.size() > 0 && depth < maxDepth) {
-    node = toProcess.back(); // get element to add neighbors to
-    toProcess.pop_back();
-    r1 = 3; // TODO: r1 should be random < maxDepth / 2
-    for (i = 0; i < r1; i++) {
-      r2 = 4; // TODO: r2 should be random < maxDepth
-      if (r2 < maxDepth / 3) { // with 1/3 chance, create edge to new node
-        toProcess.insert(toProcess.begin(), node.addNewNeighbor());
-      } else { // create edge to an existing processed node
-        node.addNeighbor(processed[r2 % processed.size()]);
+// sets a bunch of edges randomly in a graph
+void Graph::buildRandomGraph(void) {
+  int i, j, r = 0;
+  unsigned int seed = time(NULL);
+  for (i = 0; i < this->size; i++) {
+    for (j = 0; j < this->size; j++) {
+      r = (safeRand(&seed) % 3);
+      if (r == 0) { // ~25% of adding an edge
+        this->addEdge(i, j);
       }
     }
-    processed.push_back(node);
-    depth++;
   }
 }
+
 
 // constructor to build a path of edges through a graph
 Path::Path(void) {
 }
 
-// 
-bool Path::addVertex(Vertex node) {
-  if (!this->vertices.back().isNeighbor(node)) {
-    // the provided vertex has no edge to the last vertex in the path
-    return false;
-  }
 
-  this->vertices.push_back(node);
-  return true;
+// adds a vertex to the path being built up
+void Path::addVertex(int vertex) {
+  this->vertices.push_back(vertex);
 }
+
 
 // returns the number of edges in this path
 int Path::getSize(void) {
   return this->vertices.size() - 1;
+}
+
+
+// writes a dot graph representation of this graph to stdout
+void Path::printAsDotGraph(void) {
+  printf("digraph graphname {\n");
+  for (int i = 1; i < this->vertices.size(); i++) {
+    printf("%d -> %d;\n", this->vertices[i-1], this->vertices[i]);
+  }
+  printf("}\n");
 }

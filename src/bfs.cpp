@@ -12,14 +12,26 @@
 
 #define ROOT_RANK 0
 
+// TODO: basic algorithm for finding centrality!
+//
+// short_path_counts = {0} // length N
+// for (i = 0; i < ((n - 1) * (n - 1) / 2); i++) {
+//   run the algorithm from the paper
+//   for each of the vertices returned in the shortest path {
+//     short_path_counts[vertex]++;
+//   }
+// }
+// find the index with the highest count
+
 // TODO
-int shortestPath(Vertex start, Vertex end) {
-  return -1;
+Path shortestPath(int start, int end) {
+  Path shortest = Path();
+  return shortest;
 }
 
 // TODO
-Vertex bfs(Vertex root) {
-  return root;
+int bfs(Graph graph) {
+  return 0;
 }
 
 /**
@@ -39,14 +51,14 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
   omp_size = omp_get_max_threads();
 
-  Vertex root = Vertex();
+  Graph graph = Graph(DIM); // build a graph of DIM x DIM size
   if (mpi_rank == ROOT_RANK) {
-    root.buildRandomGraph(7);
-    root.printGraphAsDot();
+    graph.buildRandomGraph();
+    graph.printAsDotGraph();
 
     //matrix = malloc(sizeof(double) * MAT_SIZE);
     //memset(matrix, 0, sizeof(double) * MAT_SIZE);
-  
+
     //// root initializes the whole matrix
     //init_matrix(matrix, DIM, MAT_SIZE);
     //for (i = 1; i < mpi_size; ++i) {
@@ -60,7 +72,7 @@ int main(int argc, char **argv) {
     //MPI_Recv(matrix, block, MPI_DOUBLE, ROOT_RANK, 0, MPI_COMM_WORLD, NULL);
   }
 
-  //bfs(vertex);
+  //bfs(graph);
 
   // wait until everyone is done
   MPI_Barrier(MPI_COMM_WORLD);

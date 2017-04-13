@@ -19,13 +19,14 @@ class Graph {
     uint8_t graph[MAX_GRAPH_SIZE][MAX_GRAPH_SIZE]; // initializes to {0, 0, ...}
 
   public:
-    Graph(int size);
+    Graph(int size); // implicit destructor
 
     void addEdge(int, int);
     bool isNeighbor(int, int);
     int getNumNeighbors(int);
     std::vector<int> getNeighbors(int);
     void printAsDotGraph(void);
+    void printAsMatrix(void);
     void buildRandomGraph(void);
 };
 

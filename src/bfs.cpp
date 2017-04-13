@@ -8,7 +8,7 @@
 #include "graph.h"
 #include <iostream>
 #include <mpi.h>
-#include <omp.h> 
+#include <omp.h>
 
 #define ROOT_RANK 0
 
@@ -24,8 +24,12 @@
 // find the index with the highest count
 
 // TODO
-Path shortestPath(int start, int end) {
+Path shortestPath(Graph graph, int start, int end) {
   Path shortest = Path();
+  shortest.addVertex(10);
+  shortest.addVertex(1);
+  shortest.addVertex(3);
+  shortest.addVertex(30);
   return shortest;
 }
 
@@ -55,6 +59,8 @@ int main(int argc, char **argv) {
   if (mpi_rank == ROOT_RANK) {
     graph.buildRandomGraph();
     graph.printAsDotGraph();
+    //graph.printAsMatrix();
+    //shortestPath(graph, 3, 7).printAsDotGraph();
 
     //matrix = malloc(sizeof(double) * MAT_SIZE);
     //memset(matrix, 0, sizeof(double) * MAT_SIZE);

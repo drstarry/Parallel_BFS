@@ -90,6 +90,18 @@ void Graph::printAsDotGraph(void) {
 }
 
 
+// writes a matrix representation of this graph to stdout
+void Graph::printAsMatrix(void) {
+  int i, j;
+  for (i = 0; i < this->size; i++) {
+    for (j = 0; j < this->size; j++) {
+      printf(" %d", this->graph[i][j]);
+    }
+    printf("\n");
+  }
+}
+
+
 // sets a bunch of edges randomly in a graph
 void Graph::buildRandomGraph(void) {
   int i, j, r = 0;
@@ -124,9 +136,9 @@ int Path::getSize(void) {
 
 // writes a dot graph representation of this graph to stdout
 void Path::printAsDotGraph(void) {
-  printf("digraph graphname {\n");
+  printf("graph graphname {\n");
   for (int i = 1; i < this->vertices.size(); i++) {
-    printf("%d -> %d;\n", this->vertices[i-1], this->vertices[i]);
+    printf("%d -- %d;\n", this->vertices[i-1], this->vertices[i]);
   }
   printf("}\n");
 }

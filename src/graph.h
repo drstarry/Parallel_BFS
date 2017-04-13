@@ -11,16 +11,16 @@
 #include <vector>
 #include <stdint.h>
 
-#define MAX_GRAPH_SIZE 999
+#define MAX_GRAPH_SIZE 1000
 
 
 class Graph {
   private:
     const int size;
-    uint8_t graph[MAX_GRAPH_SIZE][MAX_GRAPH_SIZE]; // initializes to {0, 0, ...}
 
   public:
     Graph(int size); // implicit destructor
+    uint8_t graph[MAX_GRAPH_SIZE][MAX_GRAPH_SIZE]; // initializes to {0, 0, ...}
 
     void addEdge(int, int);
     bool isNeighbor(int, int);

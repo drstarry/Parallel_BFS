@@ -30,16 +30,25 @@ Graph::Graph(int size) :
 
 // adds an edge between two vertices
 void Graph::addEdge(int vertex1, int vertex2) {
+  if (this->getNumNeighbors(vertex1) == 0) {
+    // vertex1 had no neighbors before, so the vertex didn't exist
+    this->numVertices++;
+  }
+  if (this->getNumNeighbors(vertex2) == 0) {
+    // vertex2 had no neighbors before, so the vertex didn't exist
+    this->numVertices++;
+  }
+
   if (vertex1 != vertex2) {
-    this->graph[vertex1][vertex2] = 1;
-    this->graph[vertex2][vertex1] = 1;
+    this->matrix[vertex1][vertex2] = 1;
+    this->matrix[vertex2][vertex1] = 1;
   }
 }
 
 
 // returns if the two vertices have a connecting edge
 bool Graph::isNeighbor(int vertex1, int vertex2) {
-  return this->graph[vertex1][vertex2] == 1;
+  return this->matrix[vertex1][vertex2] == 1;
 }
 
 
@@ -97,7 +106,7 @@ void Graph::printAsMatrix(void) {
   int i, j;
   for (i = 0; i < this->size; i++) {
     for (j = 0; j < this->size; j++) {
-      printf(" %d", this->graph[i][j]);
+      printf(" %d", this->matrix[i][j]);
     }
     printf("\n");
   }
@@ -110,8 +119,8 @@ void Graph::buildRandomGraph(void) {
   unsigned int seed = time(NULL);
   for (i = 0; i < this->size; i++) {
     for (j = 0; j < this->size; j++) {
-      r = (safeRand(&seed) % 3);
-      if (r == 0) { // ~25% of adding an edge
+      r = (safeRand(&seed) % 5);
+      if (r == 0) { // ~20% of adding an edge
         this->addEdge(i, j);
       }
     }

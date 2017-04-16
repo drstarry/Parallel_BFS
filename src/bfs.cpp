@@ -9,6 +9,7 @@
 #include <iostream>
 #include <mpi.h>
 #include <omp.h>
+#include <deque>
 
 #define ROOT_RANK 0
 
@@ -33,8 +34,51 @@ Path shortestPath(Graph graph, int start, int end) {
   return shortest;
 }
 
-// TODO
-int bfs(Graph graph) {
+int printSequentialBfs(Graph graph) {
+  int i, j, root, currentVertex;
+  bool visited[graph.numVertices];
+  std::deque<int> queue;
+
+  // initialize visited array to false
+  for (i = 0; i < graph.numVertices; i++) {
+    visited[i] = false;
+  }
+
+  // find the first node in the matrix. use this as the root node
+  root = -1;
+  for (i = 0; i < graph.size && root == -1; i++) {
+    for (j = 0; j < graph.size && root == -1; j++) {
+      if (graph.isNeighbor(i, j)) {
+        // an edge exists between these two vertices, so obviously the vertices
+        // exist and we can use one of them as the root
+        root = i;
+      }
+    }
+  }
+
+  // we have visited the root node now
+  visited[root] = true;
+  queue.push_back(root);
+
+  // does a bfs through the adjacency matrix and prints out a dot graph
+  // representation of the search path as a directed tree
+  printf("digraph bfs {\n");
+  while (!queue.empty()) {
+    currentVertex = queue.front();
+    queue.pop_front();
+
+    std::vector<int> neighbors = graph.getNeighbors(currentVertex);
+    for (i = 0; i < neighbors.size(); i++) {
+      j = neighbors[i];
+      if (!visited[j]) {
+        visited[j] = true;
+        queue.push_back(j);
+        printf("%d -> %d;\n", currentVertex, j);
+      }
+    }
+  }
+  printf("}\n");
+
   return 0;
 }
 
@@ -60,6 +104,9 @@ int main(int argc, char **argv) {
   if (mpi_rank == ROOT_RANK) {
     graph.buildRandomGraph(); // randomly adds edges
     graph.printAsDotGraph();
+    printf("/*\n");
+    printSequentialBfs(graph);
+    printf("*/\n");
     //graph.printAsMatrix();
     //shortestPath(graph, 3, 7).printAsDotGraph();
 

@@ -15,12 +15,11 @@
 
 
 class Graph {
-  private:
-    const int size;
-
   public:
+    const int size;
+    int numVertices;
+    uint8_t matrix[MAX_GRAPH_SIZE][MAX_GRAPH_SIZE]; // initializes to all 0s
     Graph(int size); // implicit destructor
-    uint8_t graph[MAX_GRAPH_SIZE][MAX_GRAPH_SIZE]; // initializes to {0, 0, ...}
 
     void addEdge(int, int);
     bool isNeighbor(int, int);

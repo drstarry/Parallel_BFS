@@ -11,8 +11,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string>
+#include <fstream>
 
 #include "graph.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -40,7 +43,7 @@ void Graph::addEdge(int vertex1, int vertex2) {
     // vertex2 had no neighbors before, so the vertex didn't exist
     this->numVertices++;
   }
-  cout << vertex1 << ", " << vertex2 << endl;
+  // cout << vertex1 << ", " << vertex2 << endl;
   if (vertex1 != vertex2) {
     this->matrix[vertex1*this->size+vertex2] = 1;
     this->matrix[vertex2*this->size+vertex1] = 1;
@@ -125,6 +128,25 @@ void Graph::buildRandomGraph(void) {
       if (r == 0) { // ~20% of adding an edge
         this->addEdge(i, j);
       }
+    }
+  }
+}
+
+
+// builds up the graph by reading in a text file. assumes text file is in the
+// format where each line only contains <vertex vertex>. Where each vertex is
+// an integer, and each line represent an edge between each vertex.
+void Graph::buildGraphFromFile(const char *filename) {
+  std::string line;
+  std::ifstream dataFile(filename);
+  int v1, v2;
+
+  while (std::getline(dataFile, line)) {
+    std::vector<std::string> parts = split(line, ' ');
+    v1 = atoi(parts[0].c_str());
+    v2 = atoi(parts[1].c_str());
+    if (0 <= v1 && v1 < this->size && 0 <= v2 < this->size) {
+      this->addEdge(v1, v2);
     }
   }
 }

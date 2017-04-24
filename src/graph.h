@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <stdint.h>
+#include <string>
 
 #define MAX_GRAPH_SIZE 1000
 
@@ -28,7 +29,7 @@ public:
     void printAsDotGraph(void);
     void printAsMatrix(void);
     void buildRandomGraph(void);
-//    ~Graph();
+    void buildGraphFromFile(const char *);
 };
 
 

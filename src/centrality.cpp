@@ -48,7 +48,7 @@ int* shortestPath(int* graph, int start) {
 	bool stop = false;
 	for (int round = 1; round <= DIM; round++) {
 		if (all_cnt == 0) {
-			cout << "all count = " << all_cnt << endl;
+			// cout << "all count = " << all_cnt << endl;
 			break;
 		}
 
@@ -71,16 +71,16 @@ int* shortestPath(int* graph, int start) {
 					local_reached[i] = 1;
 					local_ver[i] = 1;
 					local_dist[i] = round;
-					cout << "dist:" << local_dist[i] << endl;
+					// cout << "dist:" << local_dist[i] << endl;
 					new_cnt += 1;
 				}
 			}
 		}
 
 		for (int i = 0; i < DIM; i++) {
-			cout << glob_reached[i] << " ";
+			// cout << glob_reached[i] << " ";
 		}
-		cout << endl;
+		// cout << endl;
 		MPI_Gather(local_ver, sub_DIM, MPI_INT,
 				   vertexes, sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
 		MPI_Gather(local_dist, sub_DIM, MPI_INT,
@@ -93,15 +93,15 @@ int* shortestPath(int* graph, int start) {
 		MPI_Bcast(&all_cnt, 1, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
 
 		if (mpi_rank == ROOT_RANK) {
-			cout << "******round " << round << endl;
+			// cout << "******round " << round << endl;
 			for (int j  = 0; j < DIM; j++) {
-				cout << glob_dist[j] << ", ";
+				// cout << glob_dist[j] << ", ";
 			}
-			cout << endl;
+			// cout << endl;
 			for (int j  = 0; j < DIM; j++) {
-				cout << vertexes[j] << ", ";
+				// cout << vertexes[j] << ", ";
 			}
-			cout << "\n********\n";
+			// cout << "\n********\n";
 		}
 
 		new_cnt = 0;
@@ -187,24 +187,22 @@ int main(int argc, char **argv) {
 	Graph graph = Graph(DIM); // initialize a graph of DIM x DIM size
 
 	// get sub matrix
-	int* local_graph = (int*)malloc(sizeof(int) * block);
+	int* local_graph = new int[block];
 	if (mpi_rank == ROOT_RANK) {
-
-		graph.buildRandomGraph(); // randomly adds edges
-		graph.printAsMatrix();
-//		printf("/*\n");
-//		printSequentialBfs(graph);
-//		printf("*/\n");
+    graph.buildGraphFromFile("data/facebook_combined.txt");
+		//graph.buildRandomGraph(); // randomly adds edges
+		//graph.printAsMatrix();
+    graph.printAsDotGraph();
 	}
 
 	// send chunks to each process
 	MPI_Scatter(graph.matrix, block, MPI_INT, local_graph,
-				block, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
+	 			block, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
 
 	for (i = 0; i < DIM; i++) {
-		cout << "------source " << i << endl;
+		// cout << "------source " << i << endl;
 		int* dist = shortestPath(local_graph, i);
-		cout << "------" << endl;
+		// cout << "------" << endl;
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 

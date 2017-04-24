@@ -31,7 +31,10 @@ int* shortestPath(int* graph, int start) {
 
 	// local and global distances
 	int* glob_dist = new int[DIM];
-	memset(glob_dist, -1, DIM*sizeof(int));
+	for (int i = 0; i < DIM; i++) {
+		glob_dist[i] = -1;
+	}
+
 	glob_dist[start] = 0;
 	int* local_dist = new int[sub_DIM];
 
@@ -48,7 +51,7 @@ int* shortestPath(int* graph, int start) {
 	bool stop = false;
 	for (int round = 1; round <= DIM; round++) {
 		if (all_cnt == 0) {
-			// cout << "all count = " << all_cnt << endl;
+			cout << "all count = " << all_cnt << endl;
 			break;
 		}
 
@@ -62,46 +65,46 @@ int* shortestPath(int* graph, int start) {
 		MPI_Scatter(glob_reached, sub_DIM, MPI_INT, local_reached,
 					sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
 
-		// openmp
+		// #pragma openmp parallel for
 		for (int i = 0; i < sub_DIM; i++) {
-			// #openmp parallel for
+			// #pragma openmp parallel for
 			for (int j = 0; j < DIM; j++) {
 				idx = DIM * i + j;
 				if (graph[idx] == 1 && vertexes[j] == 1 && local_reached[i] == 0) {
 					local_reached[i] = 1;
 					local_ver[i] = 1;
 					local_dist[i] = round;
-					// cout << "dist:" << local_dist[i] << endl;
+					cout << "dist:" << local_dist[i] << endl;
 					new_cnt += 1;
 				}
 			}
 		}
 
 		for (int i = 0; i < DIM; i++) {
-			// cout << glob_reached[i] << " ";
+			cout << glob_reached[i] << " ";
 		}
-		// cout << endl;
+		 cout << endl;
 		MPI_Gather(local_ver, sub_DIM, MPI_INT,
-				   vertexes, sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
+					 vertexes, sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
 		MPI_Gather(local_dist, sub_DIM, MPI_INT,
-				   glob_dist, sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
+					 glob_dist, sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
 		MPI_Gather(local_reached, sub_DIM, MPI_INT,
-				   glob_reached, sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
+					 glob_reached, sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
 
 		// gather if all process finished
 		MPI_Gather(&new_cnt, 1, MPI_INT, &all_cnt, 1, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
 		MPI_Bcast(&all_cnt, 1, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
 
 		if (mpi_rank == ROOT_RANK) {
-			// cout << "******round " << round << endl;
-			for (int j  = 0; j < DIM; j++) {
-				// cout << glob_dist[j] << ", ";
+			cout << "******round " << round << endl;
+			for (int j	= 0; j < DIM; j++) {
+				cout << glob_dist[j] << ", ";
 			}
-			// cout << endl;
-			for (int j  = 0; j < DIM; j++) {
-				// cout << vertexes[j] << ", ";
+			cout << endl;
+			for (int j	= 0; j < DIM; j++) {
+				cout << vertexes[j] << ", ";
 			}
-			// cout << "\n********\n";
+			cout << "\n********\n";
 		}
 
 		new_cnt = 0;
@@ -184,30 +187,37 @@ int main(int argc, char **argv) {
 	sub_DIM = DIM / mpi_size; // sub dim in each process
 	block = DIM*sub_DIM;
 
-	Graph graph = Graph(DIM); // initialize a graph of DIM x DIM size
+	Graph graph = Graph(mpi_rank, DIM); // initialize a graph of DIM x DIM size
 
 	// get sub matrix
 	int* local_graph = new int[block];
 	if (mpi_rank == ROOT_RANK) {
-    graph.buildGraphFromFile("data/facebook_combined.txt");
+		//graph.buildGraphFromFile("data/facebook_combined.txt");
 		//graph.buildRandomGraph(); // randomly adds edges
 		//graph.printAsMatrix();
-    graph.printAsDotGraph();
 	}
 
-	// send chunks to each process
-	MPI_Scatter(graph.matrix, block, MPI_INT, local_graph,
-	 			block, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
+	//graph.buildSubGraphFromFile("data/twitter_combined.txt", mpi_rank, mpi_size);
+	graph.buildRandomGraph(); // randomly adds edges
+	graph.writeAsDotGraph();
 
-	for (i = 0; i < DIM; i++) {
-		// cout << "------source " << i << endl;
-		int* dist = shortestPath(local_graph, i);
-		// cout << "------" << endl;
-		MPI_Barrier(MPI_COMM_WORLD);
-	}
+	//// send chunks to each process
+	//MPI_Scatter(graph.matrix, block, MPI_INT, local_graph,
+	// 			block, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
 
-	// wait until everyone is done
-	MPI_Barrier(MPI_COMM_WORLD);
+	//for (i = 0; i < DIM; i++) {
+	//	cout << "------source " << i << endl;
+	//	int* dist = shortestPath(local_graph, i);
+	//	for (int j = 0; j < DIM; j++) {
+	//		cout << dist[i] << " ";
+	//	}
+	//	cout << endl;
+	//	cout << "------" << endl;
+	//	MPI_Barrier(MPI_COMM_WORLD);
+	//}
+
+	//// wait until everyone is done
+	//MPI_Barrier(MPI_COMM_WORLD);
 
 	MPI_Finalize();
 

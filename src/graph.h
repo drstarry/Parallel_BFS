@@ -17,28 +17,30 @@
 
 class Graph {
 public:
-    const int size;
-    int numVertices;
-    int matrix[MAX_GRAPH_SIZE*MAX_GRAPH_SIZE]; // initializes to all 0s
-    Graph(int size); // implicit destructor
+		const int rank; // the processor rank using this graph
+		const int size; // size x size matrix
+		int numVertices;
+		int matrix[MAX_GRAPH_SIZE*MAX_GRAPH_SIZE]; // initializes to all 0s
+		Graph(int, int); // implicit destructor
 
-    void addEdge(int, int);
-    bool isNeighbor(int, int);
-    int getNumNeighbors(int);
-    std::vector<int> getNeighbors(int);
-    void printAsDotGraph(void);
-    void printAsMatrix(void);
-    void buildRandomGraph(void);
-    void buildGraphFromFile(const char *);
+		void addEdge(int, int);
+		bool isNeighbor(int, int);
+		int getNumNeighbors(int);
+		std::vector<int> getNeighbors(int);
+		void writeAsDotGraph(void);
+		void printAsMatrix(void);
+		void buildRandomGraph(void);
+		void buildGraphFromFile(const char *);
+		void buildSubGraphFromFile(const char *, int, int);
 };
 
 
 //class Path {
 //public:
-//    std::vector<int> pres;
-//    Path(int);
-//    void set(int, int);
-//    int* frequency();
+//		std::vector<int> pres;
+//		Path(int);
+//		void set(int, int);
+//		int* frequency();
 //};
 
 #endif

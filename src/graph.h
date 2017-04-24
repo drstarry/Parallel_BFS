@@ -32,12 +32,12 @@ public:
 };
 
 
-class Path {
-public:
-    std::vector<int> pres;
-    Path(int);
-    void set(int, int);
-    int* frequency();
-};
+//class Path {
+//public:
+//    std::vector<int> pres;
+//    Path(int);
+//    void set(int, int);
+//    int* frequency();
+//};
 
 #endif

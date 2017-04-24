@@ -131,19 +131,19 @@ void Graph::buildRandomGraph(void) {
 
 
 // constructor to build a path of edges through a graph
-Path::Path(int n) {
-  this->pres.resize(n);
-  fill(this->pres.begin(), this->pres.end(), 0);
-}
-
-// set precessor
-void Path::set(int node, int pre) {
-  this->pres[node] = pre;
-}
-
-int* Path::frequency() {
-  //TODO
-}
+//Path::Path(int n) {
+//  this->pres.resize(n);
+//  fill(this->pres.begin(), this->pres.end(), 0);
+//}
+//
+//// set precessor
+//void Path::set(int node, int pre) {
+//  this->pres[node] = pre;
+//}
+//
+//int* Path::frequency() {
+//  //TODO
+//}
 
 //// writes a dot graph representation of this graph to stdout
 //void Path::printAsDotGraph(void) {

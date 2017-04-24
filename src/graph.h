@@ -15,10 +15,10 @@
 
 
 class Graph {
-  public:
+public:
     const int size;
     int numVertices;
-    uint8_t matrix[MAX_GRAPH_SIZE][MAX_GRAPH_SIZE]; // initializes to all 0s
+    int matrix[MAX_GRAPH_SIZE*MAX_GRAPH_SIZE]; // initializes to all 0s
     Graph(int size); // implicit destructor
 
     void addEdge(int, int);
@@ -28,16 +28,16 @@ class Graph {
     void printAsDotGraph(void);
     void printAsMatrix(void);
     void buildRandomGraph(void);
+//    ~Graph();
 };
 
 
 class Path {
-  public:
-    std::vector<int> vertices;
-    Path(void); // implicit destructor
-    void addVertex(int);
-    int getSize(void);
-    void printAsDotGraph(void);
+public:
+    std::vector<int> pres;
+    Path(int);
+    void set(int, int);
+    int* frequency();
 };
 
 #endif

@@ -5,12 +5,16 @@
 //
 // Parallel BFS
 
-#include "graph.h"
+#include <iostream>
 #include <algorithm>
 #include <vector>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+#include "graph.h"
+
+using namespace std;
 
 
 #ifdef _WIN32
@@ -23,10 +27,8 @@
 // NOTE: size must be less than MAX_GRAPH_SIZE
 // constructs a new undirected graph represented using a symmetric sparse
 // adjacency matrix
-Graph::Graph(int size) :
-  size(size) {
+Graph::Graph(int size) : size(size) {
 }
-
 
 // adds an edge between two vertices
 void Graph::addEdge(int vertex1, int vertex2) {
@@ -38,17 +40,17 @@ void Graph::addEdge(int vertex1, int vertex2) {
     // vertex2 had no neighbors before, so the vertex didn't exist
     this->numVertices++;
   }
-
+  cout << vertex1 << ", " << vertex2 << endl;
   if (vertex1 != vertex2) {
-    this->matrix[vertex1][vertex2] = 1;
-    this->matrix[vertex2][vertex1] = 1;
+    this->matrix[vertex1*this->size+vertex2] = 1;
+    this->matrix[vertex2*this->size+vertex1] = 1;
   }
 }
 
 
 // returns if the two vertices have a connecting edge
 bool Graph::isNeighbor(int vertex1, int vertex2) {
-  return this->matrix[vertex1][vertex2] == 1;
+  return this->matrix[vertex1*this->size+vertex2] == 1;
 }
 
 
@@ -106,7 +108,7 @@ void Graph::printAsMatrix(void) {
   int i, j;
   for (i = 0; i < this->size; i++) {
     for (j = 0; j < this->size; j++) {
-      printf(" %d", this->matrix[i][j]);
+      printf(" %d", this->matrix[i*this->size+j]);
     }
     printf("\n");
   }
@@ -119,7 +121,7 @@ void Graph::buildRandomGraph(void) {
   unsigned int seed = time(NULL);
   for (i = 0; i < this->size; i++) {
     for (j = 0; j < this->size; j++) {
-      r = (safeRand(&seed) % 5);
+      r = (safeRand(&seed) % this->size);
       if (r == 0) { // ~20% of adding an edge
         this->addEdge(i, j);
       }
@@ -129,27 +131,25 @@ void Graph::buildRandomGraph(void) {
 
 
 // constructor to build a path of edges through a graph
-Path::Path(void) {
+Path::Path(int n) {
+  this->pres.resize(n);
+  fill(this->pres.begin(), this->pres.end(), 0);
 }
 
-
-// adds a vertex to the path being built up
-void Path::addVertex(int vertex) {
-  this->vertices.push_back(vertex);
+// set precessor
+void Path::set(int node, int pre) {
+  this->pres[node] = pre;
 }
 
-
-// returns the number of edges in this path
-int Path::getSize(void) {
-  return this->vertices.size() - 1;
+int* Path::frequency() {
+  //TODO
 }
 
-
-// writes a dot graph representation of this graph to stdout
-void Path::printAsDotGraph(void) {
-  printf("graph graphname {\n");
-  for (int i = 1; i < this->vertices.size(); i++) {
-    printf("%d -- %d;\n", this->vertices[i-1], this->vertices[i]);
-  }
-  printf("}\n");
-}
+//// writes a dot graph representation of this graph to stdout
+//void Path::printAsDotGraph(void) {
+//  printf("graph graphname {\n");
+//  for (int i = 1; i < this->vertices.size(); i++) {
+//    printf("%d -- %d;\n", this->vertices[i-1], this->vertices[i]);
+//  }
+//  printf("}\n");
+//}

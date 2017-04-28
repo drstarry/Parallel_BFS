@@ -145,8 +145,8 @@ int main(int argc, char **argv) {
   // print out results of centrality ranking
   for (centrality_T::iterator it = centrality.begin();
        it != centrality.end(); it++) {
-    printf("vertex: %d\tbetweeness centrality metric: %0.02f\n", it->first,
-           it->second);
+    printf("r: %d vertex: %d\tbetweeness centrality metric: %0.02f\n",
+           mpi_rank + 1, it->first, it->second);
   }
 
   // wait until everyone is done

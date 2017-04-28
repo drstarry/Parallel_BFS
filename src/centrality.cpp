@@ -118,7 +118,7 @@ std::map<int, int> parallelBrandesCentrality(Graph graph, int mpi_rank,
 int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
 
-  int mpi_rank, mpi_size, omp_size, DIM = 10;
+  int mpi_rank, mpi_size, omp_size, DIM = 32;
   if (argc == 2) {
     // read integer from command line argument
     sscanf(argv[1], "%d", &DIM);
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
   omp_size = omp_get_max_threads();
 
   // initialize a graph
-  Graph graph = Graph(mpi_rank, 32);
+  Graph graph = Graph(mpi_rank, DIM);
 
   // read the whole graph into memory for each processor
   //graph.buildGraphFromFile("data/facebook_combined.txt");

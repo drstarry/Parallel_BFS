@@ -16,16 +16,17 @@
 
 #define ROOT_RANK 0
 
+typedef std::map<int, float> centrality_T;
 
 // implements the parallelized version of brandes betweeness centrality
 // algorithm from:
 // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.85.5626&rep=rep1&type=pdf
-std::map<int, int> parallelBrandesCentrality(Graph graph, int mpi_rank,
+centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
                                              int mpi_size, int omp_size) {
-  std::map<int, int> centrality;
+  centrality_T centrality;
   std::vector<int> shortestPath;
   std::vector<int> distance;
-  std::vector<int> pairDependency;
+  std::vector<float> pairDependency;
 
   // translates all vertex ids into a incrementing indices for an array
   int i = 0;
@@ -43,7 +44,7 @@ std::map<int, int> parallelBrandesCentrality(Graph graph, int mpi_rank,
   #pragma omp parallel for
   for (int j = 0; j < numVertices; j++) {
     // map each index value back to the graph vertex id
-    centrality.insert(std::pair<int, int>(iToG[j], 0));
+    centrality.insert(std::pair<int, float>(iToG[j], 0.0));
   }
 
   #pragma omp parallel for
@@ -86,7 +87,7 @@ std::map<int, int> parallelBrandesCentrality(Graph graph, int mpi_rank,
     }
 
     for (i = 0; i < numVertices; i++) {
-      pairDependency.push_back(0);
+      pairDependency.push_back(0.0);
     }
 
     while (!visited.empty()) {
@@ -97,8 +98,8 @@ std::map<int, int> parallelBrandesCentrality(Graph graph, int mpi_rank,
       for (i = 0; i < preds.size(); i++) {
         int v = preds[i];
         pairDependency[v] = pairDependency[v] +
-                            (shortestPath[v] / shortestPath[w]) *
-                            (1 + pairDependency[w]);
+                            ((float)shortestPath[v] / (float)shortestPath[w]) *
+                            (1.0 + pairDependency[w]);
       }
 
       if (w != s) {
@@ -138,13 +139,13 @@ int main(int argc, char **argv) {
   graph.writeAsDotGraph();
 
   // figure out centrality metrics for all vertices
-  std::map<int, int> centrality = parallelBrandesCentrality(graph, mpi_rank,
-                                                            mpi_size, omp_size);
+  centrality_T centrality = parallelBrandesCentrality(graph, mpi_rank,
+                                            mpi_size, omp_size);
 
   // print out results of centrality ranking
-  for (std::map<int, int>::iterator it = centrality.begin();
+  for (centrality_T::iterator it = centrality.begin();
        it != centrality.end(); it++) {
-    printf("vertex: %d; betweeness centrality metric: %d\n", it->first,
+    printf("vertex: %d\tbetweeness centrality metric: %0.02f\n", it->first,
            it->second);
   }
 

@@ -9,38 +9,30 @@
 #define GRAPH_H
 
 #include <vector>
-#include <stdint.h>
-#include <string>
-
-#define MAX_GRAPH_SIZE 1000
+#include <map>
 
 
+// builds a Graph. G = (V, E). Represented internally using adjacency list
 class Graph {
-public:
-		const int rank; // the processor rank using this graph
-		const int size; // size x size matrix
-		int numVertices;
-		int matrix[MAX_GRAPH_SIZE*MAX_GRAPH_SIZE]; // initializes to all 0s
-		Graph(int, int); // implicit destructor
+  public:
+    typedef std::map<int, std::vector<int> > adjListT;
 
-		void addEdge(int, int);
-		bool isNeighbor(int, int);
-		int getNumNeighbors(int);
-		std::vector<int> getNeighbors(int);
-		void writeAsDotGraph(void);
-		void printAsMatrix(void);
-		void buildRandomGraph(void);
-		void buildGraphFromFile(const char *);
-		void buildSubGraphFromFile(const char *, int, int);
+    const int rank; // the processor rank using this graph
+    const int size; // for random graph generation, max size
+    adjListT adjacencyList;
+    Graph(int); // implicit destructor
+    Graph(int, int);
+
+    void addEdge(int, int);
+    bool isNeighbor(int, int);
+    int getNumNeighbors(int);
+    std::vector<int> getNeighbors(int);
+    int getNumVertices(void);
+    void writeAsDotGraph(void);
+    void buildRandomGraph(void);
+    void buildGraphFromFile(const char *);
+    void buildSubGraphFromFile(const char *, int, int);
 };
 
-
-//class Path {
-//public:
-//		std::vector<int> pres;
-//		Path(int);
-//		void set(int, int);
-//		int* frequency();
-//};
 
 #endif

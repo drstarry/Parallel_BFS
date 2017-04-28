@@ -9,218 +9,217 @@
 #include <iostream>
 #include <mpi.h>
 #include <omp.h>
-#include <deque>
-#include <typeinfo>
+#include <stack>
+#include <queue>
 
 #include "graph.h"
 
-using namespace std;
-
 #define ROOT_RANK 0
 
-int mpi_rank, mpi_size, block, DIM, sub_DIM;
 
+// implements the parallelized version of brandes betweeness centrality
+// algorithm from:
+// http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.85.5626&rep=rep1&type=pdf
+std::map<int, int> parallelBrandesCentrality(Graph graph,
+  int mpi_rank, int mpi_size, int omp_size) {
 
-// a source node, find shortest path
-int* shortestPath(int* graph, int start) {
-	// local and global vertexs
-	int* vertexes = new int[DIM];
-	memset(vertexes, 0, DIM*sizeof(int));
-	vertexes[start] = 1;
-	int* local_ver = new int[sub_DIM];
+  std::map<int, int> centrality;
+  std::vector<int> shortestPath;
+  std::vector<int> distance;
+  std::vector<int> pairDependency;
 
-	// local and global distances
-	int* glob_dist = new int[DIM];
-	for (int i = 0; i < DIM; i++) {
-		glob_dist[i] = -1;
-	}
+  // translates all vertex ids into a incrementing indices for an array
+  int i = 0;
+  std::map<int, int> iToG; // translator
+  std::map<int, int> gToI; // translator
+  for (Graph::adjListT::iterator it = graph.adjacencyList.begin();
+       it != graph.adjacencyList.end(); it++) {
+    gToI[it->first] = i++; // map graph vertex ids to vector indices
+    iToG[i++] = it->first; // map vector indices to graph vertex ids
+  }
 
-	glob_dist[start] = 0;
-	int* local_dist = new int[sub_DIM];
+  int numVertices = graph.getNumVertices();
 
-	// local and global reached signal
-	int* glob_reached = new int[DIM];
-	memset(glob_reached, 0, DIM*sizeof(int));
-	glob_reached[start] = 1;
-	int* local_reached = new int[sub_DIM];
+  // #pragma omp parallel for
+  for (int j = 0; j < numVertices; j++) {
+    // map each index value back to the graph vertex id
+    centrality[iToG[j]] = 0;
+  }
 
+  // #pragma omp parallel for
+  for (int s = 0; s < numVertices; s++) {
+    std::stack<int> visited;
+    std::queue<int> bfsQueue;
+    std::vector<std::vector<int> > predecessors;
 
-	int idx;
-	int all_cnt = 1, new_cnt = 0;
-	int round = 0;
-	bool stop = false;
-	for (int round = 1; round <= DIM; round++) {
-		if (all_cnt == 0) {
-			cout << "all count = " << all_cnt << endl;
-			break;
-		}
+    for (i = 0; i < numVertices; i++) {
+      predecessors.push_back(std::vector<int>());
+      shortestPath.push_back(0);
+      distance.push_back(-1);
+    }
 
-		// send vertexes to each process
-		MPI_Scatter(vertexes, sub_DIM, MPI_INT, local_ver,
-					sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
-		// send distances to each process
-		MPI_Scatter(glob_dist, sub_DIM, MPI_INT, local_dist,
-					sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
-		// send reached to each process
-		MPI_Scatter(glob_reached, sub_DIM, MPI_INT, local_reached,
-					sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
+    // s is index. use iToG[s] to get graph vertex id
+    shortestPath[s] = -1;
+    distance[s] = 0;
+    bfsQueue.push(s);
 
-		// #pragma openmp parallel for
-		for (int i = 0; i < sub_DIM; i++) {
-			// #pragma openmp parallel for
-			for (int j = 0; j < DIM; j++) {
-				idx = DIM * i + j;
-				if (graph[idx] == 1 && vertexes[j] == 1 && local_reached[i] == 0) {
-					local_reached[i] = 1;
-					local_ver[i] = 1;
-					local_dist[i] = round;
-					cout << "dist:" << local_dist[i] << endl;
-					new_cnt += 1;
-				}
-			}
-		}
+    while (!bfsQueue.empty()) {
+      // v is index. use iToG[v] to get graph vertex
+      int v = bfsQueue.front();
+      bfsQueue.pop();
+      visited.push(v);
 
-		for (int i = 0; i < DIM; i++) {
-			cout << glob_reached[i] << " ";
-		}
-		 cout << endl;
-		MPI_Gather(local_ver, sub_DIM, MPI_INT,
-					 vertexes, sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
-		MPI_Gather(local_dist, sub_DIM, MPI_INT,
-					 glob_dist, sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
-		MPI_Gather(local_reached, sub_DIM, MPI_INT,
-					 glob_reached, sub_DIM, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
+      std::vector<int> neighbors = graph.getNeighbors(iToG[v]);
+      // #pragma omp parallel for
+      for (i = 0; i < neighbors.size(); i++) {
+        // neighbors[i] is graph vertex. use gToI[...] to get index
+        int w = gToI[neighbors[i]];
+        if (distance[w] < 0) {
+          bfsQueue.push(w);
+          distance[w] = distance[v] + 1;
+        }
 
-		// gather if all process finished
-		MPI_Gather(&new_cnt, 1, MPI_INT, &all_cnt, 1, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
-		MPI_Bcast(&all_cnt, 1, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
+        if (distance[w] == distance[v] + 1) {
+          shortestPath[w] = shortestPath[w] + shortestPath[v];
+          predecessors[w].push_back(v);
+        }
+      }
+    }
 
-		if (mpi_rank == ROOT_RANK) {
-			cout << "******round " << round << endl;
-			for (int j	= 0; j < DIM; j++) {
-				cout << glob_dist[j] << ", ";
-			}
-			cout << endl;
-			for (int j	= 0; j < DIM; j++) {
-				cout << vertexes[j] << ", ";
-			}
-			cout << "\n********\n";
-		}
+    for (i = 0; i < numVertices; i++) {
+      pairDependency.push_back(0);
+    }
 
-		new_cnt = 0;
-	}
+    while (!visited.empty()) {
+      int w = visited.top();
+      visited.pop();
 
-	delete[] local_dist, local_reached, local_ver, glob_reached, vertexes;
+      std::vector<int> preds = predecessors[w];
+      for (i = 0; i < preds.size(); i++) {
+        int v = preds[i];
+        pairDependency[v] = pairDependency[v] +
+                            (shortestPath[v] / shortestPath[w]) *
+                            (1 + pairDependency[w]);
+      }
 
-	return glob_dist;
+      if (w != s) {
+        centrality[iToG[w]] = centrality[iToG[w]] + pairDependency[w];
+      }
+    }
+  }
+
+  return centrality;
 }
 
-// count all pair to compute centrality
-//void counting() {
+//// Input:  G = (V, E)
+//// Output: Array BC[1..n], where BC[v] gives the centrality metric for vertex v
+//int[] parallelBrandesCentrality(Vertices V) {
+//  # parallel for
+//  for all v in V { // for all vertex in vertices
+//    centrality[v] = 0;
+//  }
 //
+//  # parallel for
+//  for all s in V { // for all vertex in vertices
+//    visited = empty stack;
+//    bfsQueue = empty queue;
+//
+//    for all w in V {
+//      predecessors[w] = empty list
+//      shortestPath[w] = 0;
+//      distance[w] = -1;
+//    }
+//
+//    shortestPath[s] = 1;
+//    distance[s] = 0;
+//    bfsQueue.enqueue(s);
+//
+//    while !bfsQueue.empty() {
+//      v = bfsQueue.dequeue();
+//      visited.push(v);
+//
+//      # parallel for
+//      for each neighbor w of v {
+//        if distance[w] < 0 {
+//          bfsQueue.enqueue(w)
+//          distance[w] = distance[v] + 1
+//        }
+//
+//        if distance[w] == distance[v] + 1 {
+//          shortestPath[w] = shortestPath[w] + shortestPath[v];
+//          predecessors[w].append(v)
+//        }
+//      }
+//    }
+//
+//    for all v in V {
+//      pairDependency[v] = 0;
+//    }
+//
+//    while !visited.empty() {
+//      w = visited.pop();
+//      for v in predecessors[w] {
+//        pairDependency[v] = pairDependency[v] +
+//                            (shortestPath[v] / shortestPath[w]) *
+//                            (1 + pairDependency[w]);
+//      }
+//
+//      if w != s {
+//        centrality[w] = centrality[w] + pairDependency[w];
+//      }
+//    }
+//  }
+//
+//  return centrality;
 //}
 
-//int printSequentialBfs(Graph graph) {
-//	int i, j, root, currentVertex;
-//	bool visited[graph.numvertexes];
-//	std::deque<int> queue;
-//
-//	// initialize visited array to false
-//	for (i = 0; i < graph.numvertexes; i++) {
-//		visited[i] = false;
-//	}
-//
-//	// find the first node in the matrix. use this as the root node
-//	root = -1;
-//	for (i = 0; i < graph.size && root == -1; i++) {
-//		for (j = 0; j < graph.size && root == -1; j++) {
-//			if (graph.isNeighbor(i, j)) {
-//				// an edge exists between these two vertexes, so obviously the vertexes
-//				// exist and we can use one of them as the root
-//				root = i;
-//			}
-//		}
-//	}
-//
-//	// we have visited the root node now
-//	visited[root] = true;
-//	queue.push_back(root);
-//
-//	// does a bfs through the adjacency matrix and prints out a dot graph
-//	// representation of the search path as a directed tree
-//	printf("digraph bfs {\n");
-//	while (!queue.empty()) {
-//		currentVertex = queue.front();
-//		queue.pop_front();
-//
-//		std::vector<int> neighbors = graph.getNeighbors(currentVertex);
-//		for (i = 0; i < neighbors.size(); i++) {
-//			j = neighbors[i];
-//			if (!visited[j]) {
-//				visited[j] = true;
-//				queue.push_back(j);
-//				printf("%d -> %d;\n", currentVertex, j);
-//			}
-//		}
-//	}
-//	printf("}\n");
-//
-//	return 0;
-//}
+
+
+
+
+
 
 /**
  * kicks it all off
  */
 int main(int argc, char **argv) {
-	MPI_Init(&argc, &argv);
+  MPI_Init(&argc, &argv);
 
-	DIM = 10;
-	if (argc == 2) {
-		// read integer from command line argument
-		sscanf(argv[1], "%d", &DIM);
-	}
+  int mpi_rank, mpi_size, omp_size, DIM = 10;
+  if (argc == 2) {
+    // read integer from command line argument
+    sscanf(argv[1], "%d", &DIM);
+  }
 
-	int i, omp_size, offset;
-	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-	omp_size = omp_get_max_threads();
-	sub_DIM = DIM / mpi_size; // sub dim in each process
-	block = DIM*sub_DIM;
+  // get the size and rank for mpi and omp
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+  omp_size = omp_get_max_threads();
 
-	Graph graph = Graph(mpi_rank, DIM); // initialize a graph of DIM x DIM size
+  // initialize a graph
+  Graph graph = Graph(mpi_rank, 32);
 
-	// get sub matrix
-	int* local_graph = new int[block];
-	if (mpi_rank == ROOT_RANK) {
-		//graph.buildGraphFromFile("data/facebook_combined.txt");
-		//graph.buildRandomGraph(); // randomly adds edges
-		//graph.printAsMatrix();
-	}
+  // read the whole graph into memory for each processor
+  //graph.buildGraphFromFile("data/facebook_combined.txt");
+  graph.buildRandomGraph();
+  graph.writeAsDotGraph();
 
-	//graph.buildSubGraphFromFile("data/twitter_combined.txt", mpi_rank, mpi_size);
-	graph.buildRandomGraph(); // randomly adds edges
-	graph.writeAsDotGraph();
+  /*
+  // figure out centrality metrics for all vertices
+  std::map<int, int> centrality = parallelBrandesCentrality(graph,
+                                          mpi_rank, mpi_size, omp_size);
 
-	//// send chunks to each process
-	//MPI_Scatter(graph.matrix, block, MPI_INT, local_graph,
-	// 			block, MPI_INT, ROOT_RANK, MPI_COMM_WORLD);
+  // print out results of centrality ranking
+  for (std::map<int, int>::iterator it = centrality.begin();
+       it != centrality.end(); it++) {
+    printf("vertex: %d; betweeness centrality metric: %d\n", it->first,
+           it->second);
+  }
+  */
 
-	//for (i = 0; i < DIM; i++) {
-	//	cout << "------source " << i << endl;
-	//	int* dist = shortestPath(local_graph, i);
-	//	for (int j = 0; j < DIM; j++) {
-	//		cout << dist[i] << " ";
-	//	}
-	//	cout << endl;
-	//	cout << "------" << endl;
-	//	MPI_Barrier(MPI_COMM_WORLD);
-	//}
+  // wait until everyone is done
+  MPI_Barrier(MPI_COMM_WORLD);
 
-	//// wait until everyone is done
-	//MPI_Barrier(MPI_COMM_WORLD);
-
-	MPI_Finalize();
-
-	delete[] local_graph;
-	return 0;
+  MPI_Finalize();
+  return 0;
 }

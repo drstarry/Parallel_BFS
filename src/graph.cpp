@@ -8,6 +8,7 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
+#include <queue>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -85,9 +86,20 @@ int Graph::getNumVertices(void) {
 }
 
 
-// writes a dot graph representation of this graph to stdout
+// write the graph as a dot graph with no weighting added
 void Graph::writeAsDotGraph(void) {
-  int key, i;
+  Graph::centrality_T centrality;
+  for (Graph::adjList_T::iterator it = this->adjacencyList.begin();
+       it != this->adjacencyList.end(); it++) {
+    centrality.insert(std::pair<int, float>(it->first, 0.0));
+  }
+  this->writeAsDotGraph(centrality);
+}
+
+
+// writes a dot graph representation of this graph to stdout
+void Graph::writeAsDotGraph(Graph::centrality_T centrality) {
+  int i;
   char filename[13];
   char rankStr[2];
   strcpy(filename, "graph-");
@@ -97,14 +109,23 @@ void Graph::writeAsDotGraph(void) {
 
   std::ofstream graphFile(filename);
   if (graphFile.is_open()) {
-    graphFile << "graph graphname {\n";
-    for (Graph::adjListT::iterator it = this->adjacencyList.begin();
+    graphFile << "graph graphname {\nrankdir=LR;\n";
+    for (Graph::adjList_T::iterator it = this->adjacencyList.begin();
          it != this->adjacencyList.end(); it++) {
-      key = it->first;
-      std::vector<int> neighbors = this->getNeighbors(key);
+      graphFile << it->first << " [style=filled fillcolor=\"0.000 ";
+      graphFile << std::fixed << centrality[it->first] / 50.0;
+      graphFile << " 1.000\"];\n";
+      graphFile << it->first << " -- {";
+      std::vector<int> neighbors = it->second;
       for (i = 0; i < neighbors.size(); i++) {
-        graphFile << key << " -- " << neighbors[i] << ";\n";
+        if (neighbors[i] > it->first) {
+          graphFile << " " << neighbors[i];
+        } else {
+          // only want to display one edge between vertices
+          graphFile << " /*" << neighbors[i] << "*/";
+        }
       }
+      graphFile << " };\n";
     }
     graphFile << "}\n";
     graphFile.close();
@@ -119,11 +140,64 @@ void Graph::buildRandomGraph(void) {
   int i, j, r = 0;
   unsigned int seed = time(NULL) / this->rank;
   for (i = 0; i < this->size; i++) {
-    for (j = 0; j < this->size; j++) {
+    for (j = this->size - 1; j >= 0; j--) {
       r = (safeRand(&seed) % this->size);
       if (r == 0) { // ~20% of adding an edge
         this->addEdge(i, j);
       }
+    }
+  }
+
+  // make sure the graph is connected, so find path from 1 vertex to all others
+  // using djikstra's algorithm
+  std::map<int, int> dist;
+  std::map<int, int> prev;
+  std::queue<int> toVisit;
+  int source;
+  int unvisited = 999999999;
+
+  for (Graph::adjList_T::iterator it = this->adjacencyList.begin();
+       it != this->adjacencyList.end(); it++) {
+    dist[it->first] = unvisited;
+    prev[it->first] = -1;
+    toVisit.push(it->first);
+  }
+
+  // arbitrarily choose the first vertex as the source
+  source = toVisit.front();
+  dist[source] = 0;
+
+  // visit all nodes to build up a distance map from source to everywhere
+  while (!toVisit.empty()) {
+    // normally use a priority queue to pick vertex with min dist, but meh
+    int u = toVisit.front();
+    toVisit.pop();
+
+    // examine all of the neighbors
+    std::vector<int> neighbors = this->getNeighbors(u);
+    for (i = 0; i < neighbors.size(); i++) {
+      int v = neighbors[i];
+      if (prev[v] != -1) {
+        // if the node has already been visited, we don't care - skip
+        continue;
+      }
+
+      // update distance for the unvisited neighbor nodes
+      if (dist[v] > dist[u] + 1) {
+        dist[v] = dist[u] + 1;
+        prev[v] = u;
+      }
+    }
+  }
+
+  // add an edge to all nodes that have an 'unvisited' distance from source
+  for (std::map<int, int>::iterator it = dist.begin(); it != dist.end(); it++) {
+    if (it->second == unvisited) {
+      this->addEdge(source, it->first);
+      // so that the source isn't connected to lots of things, we know that if
+      // we set a "new source" to the thing we just connected to the original
+      // source, everything will become connected
+      source = it->first;
     }
   }
 }

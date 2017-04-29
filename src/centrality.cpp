@@ -11,19 +11,18 @@
 #include <omp.h>
 #include <stack>
 #include <queue>
+#include <algorithm>
 
 #include "graph.h"
 
 #define ROOT_RANK 0
 
-typedef std::map<int, float> centrality_T;
-
 // implements the parallelized version of brandes betweeness centrality
 // algorithm from:
 // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.85.5626&rep=rep1&type=pdf
-centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
+Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
                                              int mpi_size, int omp_size) {
-  centrality_T centrality;
+  Graph::centrality_T centrality;
   std::vector<int> shortestPath;
   std::vector<int> distance;
   std::vector<float> pairDependency;
@@ -32,7 +31,7 @@ centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
   int i = 0;
   std::map<int, int> iToG; // translator
   std::map<int, int> gToI; // translator
-  for (Graph::adjListT::iterator it = graph.adjacencyList.begin();
+  for (Graph::adjList_T::iterator it = graph.adjacencyList.begin();
        it != graph.adjacencyList.end(); it++) {
     gToI[it->first] = i; // map graph vertex ids to vector indices
     iToG[i] = it->first; // map vector indices to graph vertex ids
@@ -113,6 +112,26 @@ centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
 
 
 
+// orders the centrality metric map by vertices with the highest centrality,
+// and prints them out in that order
+std::pair<float, int> flipPair(const std::pair<int, float> &p) {
+  return std::pair<float, int>(p.second, p.first);
+}
+void printMostCentral(Graph::centrality_T centrality, int mpi_rank) {
+  std::multimap<float, int> sortedCent;
+  std::transform(centrality.begin(), centrality.end(),
+                 std::inserter(sortedCent, sortedCent.begin()), flipPair);
+
+  // print out results of centrality ranking
+  for (std::multimap<float, int>::reverse_iterator it = sortedCent.rbegin();
+       it != sortedCent.rend(); it++) {
+    printf("r: %d vertex: %d  \tbetweeness centrality metric: %0.02f\n",
+           mpi_rank + 1, it->first, it->second);
+  }
+}
+
+
+
 /**
  * kicks it all off
  */
@@ -131,22 +150,20 @@ int main(int argc, char **argv) {
   omp_size = omp_get_max_threads();
 
   // initialize a graph
-  Graph graph = Graph(mpi_rank, DIM);
+  //Graph graph = Graph(mpi_rank, DIM);
+  Graph graph = Graph(ROOT_RANK, DIM);
 
   // read the whole graph into memory for each processor
   //graph.buildGraphFromFile("data/facebook_combined.txt");
   graph.buildRandomGraph();
-  graph.writeAsDotGraph();
 
   // figure out centrality metrics for all vertices
-  centrality_T centrality = parallelBrandesCentrality(graph, mpi_rank,
+  Graph::centrality_T centrality = parallelBrandesCentrality(graph, mpi_rank,
                                             mpi_size, omp_size);
 
-  // print out results of centrality ranking
-  for (centrality_T::iterator it = centrality.begin();
-       it != centrality.end(); it++) {
-    printf("r: %d vertex: %d\tbetweeness centrality metric: %0.02f\n",
-           mpi_rank + 1, it->first, it->second);
+  if (mpi_rank == ROOT_RANK) {
+    graph.writeAsDotGraph(centrality);
+    printMostCentral(centrality, mpi_rank);
   }
 
   // wait until everyone is done

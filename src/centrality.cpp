@@ -12,6 +12,7 @@
 #include <stack>
 #include <queue>
 #include <algorithm>
+#include <string>
 
 #include "graph.h"
 
@@ -29,8 +30,8 @@ Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
 
   // translates all vertex ids into a incrementing indices for an array
   int i = 0;
-  std::map<int, int> iToG; // translator
-  std::map<int, int> gToI; // translator
+  std::map<int, std::string> iToG; // translator
+  std::map<std::string, int> gToI; // translator
   for (Graph::adjList_T::iterator it = graph.adjacencyList.begin();
        it != graph.adjacencyList.end(); it++) {
     gToI[it->first] = i; // map graph vertex ids to vector indices
@@ -40,12 +41,14 @@ Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
 
   int numVertices = graph.getNumVertices();
 
+  // TODO: depending on mpi_rank and mpi_size, only do a chunk of the graph
   #pragma omp parallel for
   for (int j = 0; j < numVertices; j++) {
     // map each index value back to the graph vertex id
-    centrality.insert(std::pair<int, float>(iToG[j], 0.0));
+    centrality.insert(std::pair<std::string, float>(iToG[j], 0.0));
   }
 
+  // TODO: depending on mpi_rank and mpi_size, only do a chunk of the graph
   #pragma omp parallel for
   for (int s = 0; s < numVertices; s++) {
     std::stack<int> visited;
@@ -68,7 +71,7 @@ Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
       bfsQueue.pop();
       visited.push(v);
 
-      std::vector<int> neighbors = graph.getNeighbors(iToG[v]);
+      std::vector<std::string> neighbors = graph.getNeighbors(iToG[v]);
       #pragma omp parallel for
       for (i = 0; i < neighbors.size(); i++) {
         // neighbors[i] is graph vertex. use gToI[...] to get index
@@ -114,19 +117,19 @@ Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
 
 // orders the centrality metric map by vertices with the highest centrality,
 // and prints them out in that order
-std::pair<float, int> flipPair(const std::pair<int, float> &p) {
-  return std::pair<float, int>(p.second, p.first);
+std::pair<float, std::string> flipPair(const std::pair<std::string, float> &p) {
+  return std::pair<float, std::string>(p.second, p.first);
 }
 void printMostCentral(Graph::centrality_T centrality, int mpi_rank) {
-  std::multimap<float, int> sortedCent;
+  std::multimap<float, std::string> sortedCent;
   std::transform(centrality.begin(), centrality.end(),
                  std::inserter(sortedCent, sortedCent.begin()), flipPair);
 
   // print out results of centrality ranking
-  for (std::multimap<float, int>::reverse_iterator it = sortedCent.rbegin();
+  for (std::multimap<float, std::string>::reverse_iterator it = sortedCent.rbegin();
        it != sortedCent.rend(); it++) {
     printf("r: %d vertex: %d  \tbetweeness centrality metric: %0.02f\n",
-           mpi_rank + 1, it->first, it->second);
+           mpi_rank + 1, it->second.c_str(), it->first);
   }
 }
 
@@ -154,16 +157,25 @@ int main(int argc, char **argv) {
   Graph graph = Graph(ROOT_RANK, DIM);
 
   // read the whole graph into memory for each processor
-  //graph.buildGraphFromFile("data/facebook_combined.txt");
-  graph.buildRandomGraph();
+  printf("building graph from file...\n");
+  //graph.buildGraphFromFile("data/gplus_combined.txt");
+  graph.buildGraphFromFile("data/facebook_combined.txt");
+  //graph.buildRandomGraph();
 
   // figure out centrality metrics for all vertices
+  printf("calculating centrality...\n");
   Graph::centrality_T centrality = parallelBrandesCentrality(graph, mpi_rank,
                                             mpi_size, omp_size);
 
   if (mpi_rank == ROOT_RANK) {
+    // each centrality metric that comes back is partial, so they need to all
+    // be synchonized together before generating the dot graph
+
+    // TODO: synchronize the centrality metric maps
+
+    printf("writing calculations to dot file...\n");
     graph.writeAsDotGraph(centrality);
-    printMostCentral(centrality, mpi_rank);
+    //printMostCentral(centrality, mpi_rank);
   }
 
   // wait until everyone is done

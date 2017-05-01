@@ -10,13 +10,14 @@
 
 #include <vector>
 #include <map>
+#include <string>
 
 
 // builds a Graph. G = (V, E). Represented internally using adjacency list
 class Graph {
   public:
-    typedef std::map<int, std::vector<int> > adjList_T;
-    typedef std::map<int, float> centrality_T;
+    typedef std::map<std::string, std::vector<std::string> > adjList_T;
+    typedef std::map<std::string, float> centrality_T;
 
 
     const int rank; // the processor rank using this graph
@@ -25,10 +26,10 @@ class Graph {
     Graph(int); // implicit destructor
     Graph(int, int);
 
-    void addEdge(int, int);
-    bool isNeighbor(int, int);
-    int getNumNeighbors(int);
-    std::vector<int> getNeighbors(int);
+    void addEdge(std::string, std::string);
+    bool isNeighbor(std::string, std::string);
+    int getNumNeighbors(std::string);
+    std::vector<std::string> getNeighbors(std::string);
     int getNumVertices(void);
     void writeAsDotGraph(void);
     void writeAsDotGraph(centrality_T);

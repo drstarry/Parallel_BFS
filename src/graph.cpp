@@ -40,7 +40,7 @@ Graph::Graph(int rank, int size) : rank(rank + 1), size(size) {
 
 
 // adds an edge between two vertices
-void Graph::addEdge(int vertex1, int vertex2) {
+void Graph::addEdge(std::string vertex1, std::string vertex2) {
   if (vertex1 == vertex2) {
     // these are the same vertices. no self edges are allowed.
     return;
@@ -57,8 +57,8 @@ void Graph::addEdge(int vertex1, int vertex2) {
 
 
 // returns if the two vertices have a connecting edge
-bool Graph::isNeighbor(int vertex1, int vertex2) {
-  std::vector<int> neighbors = this->getNeighbors(vertex1);
+bool Graph::isNeighbor(std::string vertex1, std::string vertex2) {
+  std::vector<std::string> neighbors = this->getNeighbors(vertex1);
   for (int i = 0; i < neighbors.size(); i++) {
     if (neighbors[i] == vertex2) {
       return true;
@@ -69,13 +69,13 @@ bool Graph::isNeighbor(int vertex1, int vertex2) {
 
 
 // returns the number of vertices the provided vertex is adjacent to
-int Graph::getNumNeighbors(int vertex) {
+int Graph::getNumNeighbors(std::string vertex) {
   return this->adjacencyList[vertex].size();
 }
 
 
 // returns a vector of the vertices connected to the provided vertex
-std::vector<int> Graph::getNeighbors(int vertex) {
+std::vector<std::string> Graph::getNeighbors(std::string vertex) {
   return this->adjacencyList[vertex];
 }
 
@@ -91,7 +91,7 @@ void Graph::writeAsDotGraph(void) {
   Graph::centrality_T centrality;
   for (Graph::adjList_T::iterator it = this->adjacencyList.begin();
        it != this->adjacencyList.end(); it++) {
-    centrality.insert(std::pair<int, float>(it->first, 0.0));
+    centrality.insert(std::pair<std::string, float>(it->first, 0.0));
   }
   this->writeAsDotGraph(centrality);
 }
@@ -112,11 +112,13 @@ void Graph::writeAsDotGraph(Graph::centrality_T centrality) {
     graphFile << "graph graphname {\nrankdir=LR;\n";
     for (Graph::adjList_T::iterator it = this->adjacencyList.begin();
          it != this->adjacencyList.end(); it++) {
-      graphFile << it->first << " [style=filled fillcolor=\"0.000 ";
+      graphFile << it->first << " [label=\"" << it->first << " - ";
+      graphFile << std::fixed << centrality[it->first] << "\"";
+      graphFile << " style=filled fillcolor=\"0.000 ";
       graphFile << std::fixed << centrality[it->first] / 50.0;
       graphFile << " 1.000\"];\n";
       graphFile << it->first << " -- {";
-      std::vector<int> neighbors = it->second;
+      std::vector<std::string> neighbors = it->second;
       for (i = 0; i < neighbors.size(); i++) {
         if (neighbors[i] > it->first) {
           graphFile << " " << neighbors[i];
@@ -143,23 +145,27 @@ void Graph::buildRandomGraph(void) {
     for (j = this->size - 1; j >= 0; j--) {
       r = (safeRand(&seed) % this->size);
       if (r == 0) { // ~20% of adding an edge
-        this->addEdge(i, j);
+        char vert1[10];
+        char vert2[10];
+        sprintf(vert1, "%d", i);
+        sprintf(vert2, "%d", j);
+        this->addEdge(std::string(vert1), std::string(vert2));
       }
     }
   }
 
   // make sure the graph is connected, so find path from 1 vertex to all others
   // using djikstra's algorithm
-  std::map<int, int> dist;
-  std::map<int, int> prev;
-  std::queue<int> toVisit;
-  int source;
+  std::map<std::string, int> dist;
+  std::map<std::string, std::string> prev;
+  std::queue<std::string> toVisit;
+  std::string source;
   int unvisited = 999999999;
 
   for (Graph::adjList_T::iterator it = this->adjacencyList.begin();
        it != this->adjacencyList.end(); it++) {
     dist[it->first] = unvisited;
-    prev[it->first] = -1;
+    prev[it->first] = "";
     toVisit.push(it->first);
   }
 
@@ -170,14 +176,14 @@ void Graph::buildRandomGraph(void) {
   // visit all nodes to build up a distance map from source to everywhere
   while (!toVisit.empty()) {
     // normally use a priority queue to pick vertex with min dist, but meh
-    int u = toVisit.front();
+    std::string u = toVisit.front();
     toVisit.pop();
 
     // examine all of the neighbors
-    std::vector<int> neighbors = this->getNeighbors(u);
+    std::vector<std::string> neighbors = this->getNeighbors(u);
     for (i = 0; i < neighbors.size(); i++) {
-      int v = neighbors[i];
-      if (prev[v] != -1) {
+      std::string v = neighbors[i];
+      if (prev[v] != "") {
         // if the node has already been visited, we don't care - skip
         continue;
       }
@@ -191,7 +197,7 @@ void Graph::buildRandomGraph(void) {
   }
 
   // add an edge to all nodes that have an 'unvisited' distance from source
-  for (std::map<int, int>::iterator it = dist.begin(); it != dist.end(); it++) {
+  for (std::map<std::string, int>::iterator it = dist.begin(); it != dist.end(); it++) {
     if (it->second == unvisited) {
       this->addEdge(source, it->first);
       // so that the source isn't connected to lots of things, we know that if
@@ -209,13 +215,14 @@ void Graph::buildRandomGraph(void) {
 void Graph::buildGraphFromFile(const char *filename) {
   std::string line;
   std::ifstream dataFile(filename);
-  int v1, v2;
+  std::string v1, v2;
 
   while (std::getline(dataFile, line)) {
     std::vector<std::string> parts = split(line, ' ');
-    v1 = atoi(parts[0].c_str());
-    v2 = atoi(parts[1].c_str());
-    this->addEdge(v1, v2);
+    //v1 = stoll(parts[0].c_str());
+    //v2 = stoll(parts[1].c_str());
+    //this->addEdge(v1, v2);
+    this->addEdge(parts[0], parts[1]);
   }
 }
 
@@ -229,7 +236,7 @@ void Graph::buildGraphFromFile(const char *filename) {
 void Graph::buildSubGraphFromFile(const char *filename, int rank, int size) {
   std::string line;
   std::ifstream dataFile(filename);
-  int v1, v2;
+  std::string v1, v2;
   int lineCount = 0;
 
   // count the number of lines and the figure out the offset in the vertex ids

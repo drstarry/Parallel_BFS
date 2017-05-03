@@ -97,7 +97,7 @@ void Graph::writeAsDotGraph(void) {
 }
 
 
-// writes a dot graph representation of this graph to stdout
+// writes a dot graph representation of this graph to a file
 void Graph::writeAsDotGraph(Graph::centrality_T centrality) {
   int i;
   char filename[13];

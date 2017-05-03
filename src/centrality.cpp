@@ -7,6 +7,7 @@
 
 #include <cstring>
 #include <iostream>
+#include <fstream>
 #include <mpi.h>
 #include <omp.h>
 #include <stack>
@@ -28,7 +29,9 @@ Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
   std::vector<int> distance;
   std::vector<float> pairDependency;
 
-  // translates all vertex ids into a incrementing indices for an array
+  // translates all vertex ids into a incrementing indices for an array. this
+  // is acceptable to do on each processor as the c++ std::map structure will
+  // have a consistent ordering when being iterated through as per the standard
   int i = 0;
   std::map<int, std::string> iToG; // translator
   std::map<std::string, int> gToI; // translator
@@ -41,28 +44,50 @@ Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
 
   int numVertices = graph.getNumVertices();
 
-  // TODO: depending on mpi_rank and mpi_size, only do a chunk of the graph
-  #pragma omp parallel for
+  #pragma omp parallel for schedule(static) shared(centrality, iToG)
   for (int j = 0; j < numVertices; j++) {
     // map each index value back to the graph vertex id
+    #pragma omp critical(centralityUpdate)
+    {
     centrality.insert(std::pair<std::string, float>(iToG[j], 0.0));
+    }
   }
 
-  // TODO: depending on mpi_rank and mpi_size, only do a chunk of the graph
-  #pragma omp parallel for
-  for (int s = 0; s < numVertices; s++) {
+  // only care to process the rankth 1/size chunk of the total graph
+  int chunkSize = (numVertices / mpi_size);
+  int chunkBeg = mpi_rank * chunkSize;
+  int chunkEnd = chunkBeg + chunkSize - 1;
+
+  #pragma omp parallel for schedule(static) default(none) \
+          firstprivate(chunkBeg, chunkEnd, numVertices, i, iToG, gToI) \
+          shared(graph, centrality, shortestPath, distance, pairDependency)
+  for (int s = chunkBeg; s < chunkEnd; s++) {
     std::stack<int> visited;
     std::queue<int> bfsQueue;
     std::vector<std::vector<int> > predecessors(numVertices);
 
     for (i = 0; i < numVertices; i++) {
+      #pragma omp critical(shortestPathUpdate)
+      {
       shortestPath.push_back(0);
+      }
+
+      #pragma omp critical(distanceUpdate)
+      {
       distance.push_back(-1);
+      }
     }
 
     // s is index. use iToG[s] to get graph vertex id
+    #pragma omp critical(shortestPathUpdate)
+    {
     shortestPath[s] = -1;
+    }
+
+    #pragma omp critical(distanceUpdate)
+    {
     distance[s] = 0;
+    }
     bfsQueue.push(s);
 
     while (!bfsQueue.empty()) {
@@ -70,42 +95,90 @@ Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
       int v = bfsQueue.front();
       bfsQueue.pop();
       visited.push(v);
+      std::vector<std::string> neighbors;
 
-      std::vector<std::string> neighbors = graph.getNeighbors(iToG[v]);
-      #pragma omp parallel for
+      #pragma omp critical(neighborsRead)
+      {
+      neighbors = graph.getNeighbors(iToG[v]);
+      }
+
+      #pragma omp parallel for schedule(static) firstprivate(v, neighbors) \
+              shared(bfsQueue, shortestPath, predecessors)
       for (i = 0; i < neighbors.size(); i++) {
+        int w, dw, dv;
         // neighbors[i] is graph vertex. use gToI[...] to get index
-        int w = gToI[neighbors[i]];
-        if (distance[w] < 0) {
+        w = gToI[neighbors[i]];
+
+        #pragma omp atomic read
+        dw = distance[w];
+        if (dw < 0) {
+          #pragma omp critical(bfsQueueUpdate)
+          {
           bfsQueue.push(w);
+          }
+          #pragma omp critical(distanceUpdate)
+          {
           distance[w] = distance[v] + 1;
+          }
         }
 
-        if (distance[w] == distance[v] + 1) {
+        #pragma omp atomic read
+        dw = distance[w];
+        #pragma omp atomic read
+        dv = distance[v];
+        if (dw == dv + 1) {
+          #pragma omp critical(shortestPathUpdate)
+          {
           shortestPath[w] = shortestPath[w] + shortestPath[v];
+          }
+          #pragma omp critical(predecessorsUpdate)
+          {
           predecessors[w].push_back(v);
+          }
         }
       }
     }
 
     for (i = 0; i < numVertices; i++) {
+      #pragma omp critical(pairDependencyUpdate)
+      {
       pairDependency.push_back(0.0);
+      }
     }
 
     while (!visited.empty()) {
       int w = visited.top();
       visited.pop();
+      std::vector<int> preds;
 
-      std::vector<int> preds = predecessors[w];
+      #pragma omp critical(predecessorsUpdate)
+      {
+      preds = predecessors[w];
+      }
+
       for (i = 0; i < preds.size(); i++) {
         int v = preds[i];
-        pairDependency[v] = pairDependency[v] +
-                            ((float)shortestPath[v] / (float)shortestPath[w]) *
-                            (1.0 + pairDependency[w]);
+        float shortest;
+        #pragma omp critical(shortestPathUpdate)
+        {
+        shortest = ((float)shortestPath[v] / (float)shortestPath[w]);
+        }
+
+        #pragma omp critical(pairDependencyUpdate)
+        {
+        pairDependency[v] = pairDependency[v] + shortest * (1.0 + pairDependency[w]);
+        }
       }
 
       if (w != s) {
-        centrality[iToG[w]] = centrality[iToG[w]] + pairDependency[w];
+        float pair;
+        #pragma omp atomic read
+        pair = pairDependency[w];
+
+        #pragma omp critical(centralityUpdate)
+        {
+        centrality[iToG[w]] = centrality[iToG[w]] + pair;
+        }
       }
     }
   }
@@ -128,8 +201,32 @@ void printMostCentral(Graph::centrality_T centrality, int mpi_rank) {
   // print out results of centrality ranking
   for (std::multimap<float, std::string>::reverse_iterator it = sortedCent.rbegin();
        it != sortedCent.rend(); it++) {
-    printf("r: %d vertex: %d  \tbetweeness centrality metric: %0.02f\n",
+    printf("r: %d vertex: %s  \tbetweeness centrality metric: %0.02f\n",
            mpi_rank + 1, it->second.c_str(), it->first);
+  }
+}
+
+
+
+// writes the centrality metrics for each vertex to a file
+void writeCentrality(Graph::centrality_T centrality, int mpi_rank) {
+  int i;
+  char filename[18];
+  char rankStr[2];
+  strcpy(filename, "centrality-");
+  sprintf(rankStr, "%d", mpi_rank);
+  strcat(filename, rankStr);
+  strcat(filename, ".txt");
+
+  std::ofstream graphFile(filename);
+  if (graphFile.is_open()) {
+    for (Graph::centrality_T::iterator it = centrality.begin();
+         it != centrality.end(); it++) {
+      graphFile << it->first << " " << std::fixed << it->second << "\n";
+    }
+    graphFile.close();
+  } else {
+    printf("Error opening file!\n");
   }
 }
 
@@ -152,34 +249,48 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
   omp_size = omp_get_max_threads();
 
-  // initialize a graph
-  //Graph graph = Graph(mpi_rank, DIM);
+  // initialize a graph object on each processor
   Graph graph = Graph(ROOT_RANK, DIM);
 
   // read the whole graph into memory for each processor
   printf("building graph from file...\n");
   //graph.buildGraphFromFile("data/gplus_combined.txt");
-  graph.buildGraphFromFile("data/facebook_combined.txt");
-  //graph.buildRandomGraph();
+  //graph.buildGraphFromFile("data/facebook_combined.txt");
+  graph.buildRandomGraph();
 
-  // figure out centrality metrics for all vertices
+  // figure out centrality metrics for part of the vertices depending on
+  // mpi_rank
   printf("calculating centrality...\n");
   Graph::centrality_T centrality = parallelBrandesCentrality(graph, mpi_rank,
                                             mpi_size, omp_size);
 
-  if (mpi_rank == ROOT_RANK) {
-    // each centrality metric that comes back is partial, so they need to all
-    // be synchonized together before generating the dot graph
+  //writeCentrality(centrality, mpi_rank);
 
-    // TODO: synchronize the centrality metric maps
+  // only care to process the rankth 1/size chunk of the total graph
+  int numVertices = graph.getNumVertices();
+  int chunkSize = (numVertices / mpi_size);
+
+  // chunkBeg -> chunkEnd will be the section of the map that this processor
+  // already has
+  int chunkBeg = mpi_rank * chunkSize;
+  int chunkEnd = chunkBeg + chunkSize - 1;
+
+  // each centrality metric that comes back is partial, so they need to all be
+  // synchonized together before generating the dot graph
+  if (mpi_rank == ROOT_RANK) {
+    // need to gather all of the centrality metrics from non-root nodes
+    // TODO
 
     printf("writing calculations to dot file...\n");
     graph.writeAsDotGraph(centrality);
-    //printMostCentral(centrality, mpi_rank);
-  }
+  } else {
+    // need to send the centrality metrics to the root node
 
-  // wait until everyone is done
-  MPI_Barrier(MPI_COMM_WORLD);
+    // send the processed part of the centrality map to the root process to be
+    // finalized and printed out
+
+    // TODO
+  }
 
   MPI_Finalize();
   return 0;

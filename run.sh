@@ -15,12 +15,12 @@
 ## mpirun -np $SLURM_NTASKS ./task1_mpi
 ## OMP_NUM_THREADS=$SLURM_NTASKS ./task1_omp
 
-OMP_NUM_THREADS=2 mpirun -np 2  time -f "%e MPI: 2  OMP: 2 nodes: 2 - cen 128"  ./cen 128
-OMP_NUM_THREADS=2 mpirun -np 4  time -f "%e MPI: 4  OMP: 2 nodes: 2 - cen 256"  ./cen 256
-OMP_NUM_THREADS=2 mpirun -np 8  time -f "%e MPI: 8  OMP: 2 nodes: 2 - cen 512"  ./cen 512
-OMP_NUM_THREADS=2 mpirun -np 16 time -f "%e MPI: 16 OMP: 2 nodes: 2 - cen 1024" ./cen 1024
+OMP_NUM_THREADS=16 mpirun -np 2  time -f "%e MPI: 2  OMP: 16 nodes: 2 - centrality gplus" ./centrality 128
+OMP_NUM_THREADS=16 mpirun -np 4  time -f "%e MPI: 4  OMP: 16 nodes: 2 - centrality gplus" ./centrality 256
+OMP_NUM_THREADS=16 mpirun -np 8  time -f "%e MPI: 8  OMP: 16 nodes: 2 - centrality gplus" ./centrality 512
+OMP_NUM_THREADS=16 mpirun -np 16 time -f "%e MPI: 16 OMP: 16 nodes: 2 - centrality gplus" ./centrality 1024
 
-OMP_NUM_THREADS=2 mpirun -np 2  time -f "%e MPI: 2  OMP: 2 nodes: 2 - cen 512" ./cen 512
-OMP_NUM_THREADS=2 mpirun -np 4  time -f "%e MPI: 4  OMP: 2 nodes: 2 - cen 512" ./cen 512
-OMP_NUM_THREADS=2 mpirun -np 8  time -f "%e MPI: 8  OMP: 2 nodes: 2 - cen 512" ./cen 512
-OMP_NUM_THREADS=2 mpirun -np 16 time -f "%e MPI: 16 OMP: 2 nodes: 2 - cen 512" ./cen 512
+OMP_NUM_THREADS=16 mpirun -np 2  time -f "%e MPI: 2  OMP: 16 nodes: 2 - centrality gplus" ./centrality 512
+OMP_NUM_THREADS=16 mpirun -np 4  time -f "%e MPI: 4  OMP: 16 nodes: 2 - centrality gplus" ./centrality 512
+OMP_NUM_THREADS=16 mpirun -np 8  time -f "%e MPI: 8  OMP: 16 nodes: 2 - centrality gplus" ./centrality 512
+OMP_NUM_THREADS=16 mpirun -np 16 time -f "%e MPI: 16 OMP: 16 nodes: 2 - centrality gplus" ./centrality 512

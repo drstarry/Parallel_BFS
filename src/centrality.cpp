@@ -254,8 +254,8 @@ int main(int argc, char **argv) {
 
   // read the whole graph into memory for each processor
   printf("building graph from file...\n");
-  //graph.buildGraphFromFile("data/gplus_combined.txt");
-  graph.buildGraphFromFile("data/facebook_combined.txt");
+  graph.buildGraphFromFile("data/gplus_combined.txt");
+  //graph.buildGraphFromFile("data/facebook_combined.txt");
   //graph.buildRandomGraph();
 
   // figure out centrality metrics for part of the vertices depending on

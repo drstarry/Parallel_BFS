@@ -255,16 +255,14 @@ int main(int argc, char **argv) {
   // read the whole graph into memory for each processor
   printf("building graph from file...\n");
   //graph.buildGraphFromFile("data/gplus_combined.txt");
-  //graph.buildGraphFromFile("data/facebook_combined.txt");
-  graph.buildRandomGraph();
+  graph.buildGraphFromFile("data/facebook_combined.txt");
+  //graph.buildRandomGraph();
 
   // figure out centrality metrics for part of the vertices depending on
   // mpi_rank
   printf("calculating centrality...\n");
   Graph::centrality_T centrality = parallelBrandesCentrality(graph, mpi_rank,
                                             mpi_size, omp_size);
-
-  //writeCentrality(centrality, mpi_rank);
 
   // only care to process the rankth 1/size chunk of the total graph
   int numVertices = graph.getNumVertices();
@@ -274,24 +272,51 @@ int main(int argc, char **argv) {
   // already has
   int chunkBeg = mpi_rank * chunkSize;
   int chunkEnd = chunkBeg + chunkSize - 1;
+  float *centralityMetrics = new float[numVertices];
 
   // each centrality metric that comes back is partial, so they need to all be
   // synchonized together before generating the dot graph
   if (mpi_rank == ROOT_RANK) {
-    // need to gather all of the centrality metrics from non-root nodes
-    // TODO
+    // need to gather all of the centrality metrics from non-root nodes, and
+    // simply add them all into this centrality metric map
+    for (int i = 0; i < mpi_size; i++) {
+      if (i == ROOT_RANK) {
+        continue;
+      }
+
+      // receive the centrality metrics from all other processes
+      MPI_Recv(centralityMetrics, numVertices, MPI_FLOAT, i, 1, MPI_COMM_WORLD,
+               NULL);
+
+      // sum the received values together
+      int j = 0;
+      for (Graph::centrality_T::iterator it = centrality.begin();
+           it != centrality.end(); it++) {
+        centrality[it->first] += centralityMetrics[j++];
+      }
+    }
 
     printf("writing calculations to dot file...\n");
     graph.writeAsDotGraph(centrality);
   } else {
-    // need to send the centrality metrics to the root node
+    // we know that the c++ std::map structure has a consistent iterator
+    // ordering, so we can simply loop through it on each processor and not
+    // worry about things being out of order
+    int i = 0;
+    for (Graph::centrality_T::iterator it = centrality.begin();
+         it != centrality.end(); it++) {
+      centralityMetrics[i++] = it->second;
+    }
 
     // send the processed part of the centrality map to the root process to be
     // finalized and printed out
-
-    // TODO
+    MPI_Send(centralityMetrics, numVertices, MPI_FLOAT, ROOT_RANK, 1,
+             MPI_COMM_WORLD);
   }
 
+  //writeCentrality(centrality, mpi_rank);
+
+  delete[] centralityMetrics;
   MPI_Finalize();
   return 0;
 }

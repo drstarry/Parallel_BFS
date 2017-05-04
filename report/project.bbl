@@ -1,0 +1,23 @@
+\begin{thebibliography}{1}
+
+\bibitem{brandes2001faster}
+{\sc Brandes, U.}
+\newblock A faster algorithm for betweenness centrality.
+\newblock {\em Journal of mathematical sociology 25}, 2 (2001), 163--177.
+
+\bibitem{burt2009structural}
+{\sc Burt, R.~S.}
+\newblock {\em Structural holes: The social structure of competition}.
+\newblock Harvard university press, 2009.
+
+\bibitem{Cormen:2001:IA:580470}
+{\sc Cormen, T.~H., Stein, C., Rivest, R.~L., and Leiserson, C.~E.}
+\newblock {\em Introduction to Algorithms}, 2nd~ed.
+\newblock McGraw-Hill Higher Education, 2001.
+
+\bibitem{johnson1977efficient}
+{\sc Johnson, D.~B.}
+\newblock Efficient algorithms for shortest paths in sparse networks.
+\newblock {\em Journal of the ACM (JACM) 24}, 1 (1977), 1--13.
+
+\end{thebibliography}

@@ -1,0 +1,205 @@
+\documentclass[11pt,a4paper,twocolumn,titlepage]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage[pdftex]{hyperref}
+
+\setlength{\parskip}{1em}
+
+
+\title{CS 6230 Project Report\\\textbf{Parallel Computation of  Centrality}}
+\author{Rui Dai, Sam Olds}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+\newpage
+
+
+% Outline:
+% 1.) Introduction
+%     * What is centrality
+%     * Different types
+%       * Degree
+%       * Closeness
+%       * Betweeness
+%       * Page Rank!
+%       * Many More: Eigenvector centrality, Katz centrality, Percolation
+%         centrality, Cross-clique centrality, Freeman Centralization
+%     * Why is it important
+%     * What problems does it solve
+%     * How is it used
+%     * The type of centrality we focused on was betweenness centrality - it's
+%       a lot of shortest path calculations.
+% 2.) Related work
+%     * How have other people already approached this problem
+%     * The best known algorithms for differenet types of centrality
+%     * Algorithms we looked at
+%     * Floyd-Warshall $O(V^3)$
+%     * Brandes $O(VE)$
+% 3.) Implementation
+%     * Challenges of implementing this in parallel
+%     * Challenges of finding a validly large social graph
+%     * Started with an adjacency matrix and matrix multiplication
+%     * Moved onto brandes algorithm using an adjacency list
+%       \cite{brandes2001faster}
+%     * Finally, implemented a parallelized version of brandes found here
+%       \cite{bader2006parallel}
+% 4.) Experimentation
+%     * Began with synthetic graphs. generated graphs this way
+%     * Moved to facebook graph with 4000 vertices \cite{leskovec2012learning}
+%     * Ended with a gplus graph with 107000 vertices \cite{leskovec2012learning}
+% 5.) Results
+%     * Challenges of rendering large graphs
+%     * Challenges of validating centrality
+%     * Graphs of strong and weak scalability.
+%     * Graphs of centrality found
+% 6.) Conclusion
+%     * MPI and OpenMP really sped up the processing time
+% 7.) Future work
+%     * We could continue working to improve the running time and finding more
+%       graphs to run it on
+%     * We used a shared memory model, it would be interesting to try and break
+%       up the graph into a distributed memory model.
+
+
+
+%% ============================= Introduction ============================= %%
+\section{Introduction} % 1. introduction and motivation
+\label{sec:intro}
+%     * What is centrality
+%     * Different types
+%       * Degree
+%       * Closeness
+%       * Betweeness
+%       * Page Rank!
+%       * Many More: Eigenvector centrality, Katz centrality, Percolation
+%         centrality, Cross-clique centrality, Freeman Centralization
+%     * Why is it important
+%     * What problems does it solve
+%     * How is it used
+%     * The type of centrality we focused on was betweenness centrality - it's
+%       a lot of shortest path calculations.
+
+In graph theory, centrality indicates the importance of a vertex in the
+network. This concept is naturally applied on social network analysis. Imagine
+you are producing a new product and want to find beta users. It's simple to let
+users with high centrality to use and spread the news to their reachable
+networks.
+
+There are many different definitions of centrality, eg. degree centrality,
+closeness centrality and betweenness centrality. In our project, we will use
+the vertex betweenness centrality, which is defined as:
+\[ g(v) = \sum_{s\neq v \neq t}{\frac{\delta_{st}(v)}{\delta_{st}}} \]
+
+Betweenness centrality quantifies the number of times a node acts as a bridge
+along the shortest path between two other nodes. It's not hard to imagine that
+the computation of centrality is very expensive with all the operations with
+shortest paths. Our goal of this project is parallel such computation and
+leverage the technology of MPI/OPENMP we learned in class.
+
+We will explain two algorithms we use for parallel centrality computation, with
+experiments, result, and analysis. 
+
+
+%% ============================= Related Work ============================= %%
+\section{Related Work} % 2. related work
+\label{sec:related-work}
+%     * How have other people already approached this problem
+%     * The best known algorithms for differenet types of centrality
+%     * Algorithms we looked at
+%     * Floyd-Warshall $O(V^3)$
+%     * Brandes $O(VE)$
+
+Centrality was first introduced as a measure for quantifying the control of a
+human on the communication between other humans in a social network by Linton
+Freeman\cite{burt2009structural} In his conception. Ever since, the concept has
+drawn many interests in cross-indiscipline area like network analysis and
+social science.
+
+Betweenness centralities in a graph involve calculating the shortest paths
+between all pairs of vertices on a graph, which requires $\Theta(V^3)$ time
+with the Floyd–Warshall\cite{Cormen:2001:IA:580470} algorithm. On sparse
+graphs, Johnson's\cite{johnson1977efficient} algorithm may be more efficient,
+taking $O(V^2 \log V + V E)$ time. In the case of unweighted graphs the
+calculations can be done with Brandes' algorithm\cite{brandes2001faster} which
+takes $\Theta(VE)$ time. Normally, these algorithms assume that graphs are
+undirected and connected with the allowance of loops and multiple edges. When
+specifically dealing with network graphs, often graphs are without loops or
+multiple edges to maintain simple relationships (where edges represent
+connections between two people or vertices). In this case, using Brandes'
+algorithm will divide final centrality scores by 2 to account for each shortest
+path being counted twice.
+
+Breadth first search is also a great part in centrality computation as for the
+shortest path part. Parallel BFS algorithms have 
+
+
+%% ============================= Data ============================= %%
+\section{Implementation} % 3. methods/algorithms
+\label{sec:data}
+%     * Challenges of implementing this in parallel
+%     * Challenges of finding a validly large social graph
+%     * Started with an adjacency matrix and matrix multiplication
+%     * Moved onto brandes algorithm using an adjacency list
+%       \cite{brandes2001faster}
+%     * Finally, implemented a parallelized version of brandes found here
+%       \cite{bader2006parallel}
+
+\subsection{Representation}
+In our work, we represent graph in sparse adjacency matrix. 
+
+
+\subsection{Graph Generation}
+
+
+%% ============================= Methods ============================= %%
+\section{Experimentation} % 3. methods/algorithms
+\label{sec:methods}
+%     * Began with synthetic graphs. generated graphs this way
+%     * Moved to facebook graph with 4000 vertices \cite{leskovec2012learning}
+%     * Ended with a gplus graph with 107000 vertices \cite{leskovec2012learning}
+
+\subsection{Simple Solution}
+
+\subsection{Method Based on Brandes'}
+Sam
+
+
+%% ============================= Results ============================= %%
+\section{Results} % 4. experiments and results
+\label{sec:results}
+%     * Challenges of rendering large graphs
+%     * Challenges of validating centrality
+%     * Graphs of strong and weak scalability.
+%     * Graphs of centrality found
+
+Sam
+
+%% ============================= Conclusion ============================= %%
+\section{Conclusion} % 5. conclusions and future directions
+\label{sec:conclusion}
+%     * MPI and OpenMP really sped up the processing time
+
+
+
+%% ============================= Future Work ============================= %%
+\section{Future Work}
+\label{sec:future-work}
+%     * We could continue working to improve the running time and finding more
+%       graphs to run it on
+%     * We used a shared memory model, it would be interesting to try and break
+%       up the graph into a distributed memory model.
+
+
+
+%% ============================= Bibliography ============================= %%
+\newpage
+\bibliographystyle{acm}
+\bibliography{references}
+
+
+
+\end{document}

@@ -10,11 +10,11 @@ run: clean
 
 run_single: clean
 	@mpic++ src/centrality.cpp src/graph.cpp src/utils.cpp -o centrality -fopenmp 2>/dev/null
-	@OMP_NUM_THREADS=4 mpirun -np 4 ./centrality 64
+	@time (OMP_NUM_THREADS=1 mpirun -np 1 ./centrality 1024)
 
 run_with_graph: clean
 	@mpic++ src/centrality.cpp src/graph.cpp src/utils.cpp -o centrality -fopenmp 2>/dev/null
-	@OMP_NUM_THREADS=16 mpirun -np 8 ./centrality 64
+	@OMP_NUM_THREADS=16 mpirun -np 8 ./centrality 1024
 	@echo "rendering dot graph..."
 	@sfdp -Goverlap_scaling=-10 -Goverlap=prism graph-1.dot -x -Tsvg -o graph-1.svg
 

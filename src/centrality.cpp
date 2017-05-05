@@ -44,7 +44,7 @@ Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
 
   int numVertices = graph.getNumVertices();
 
-  #pragma omp parallel for schedule(static) shared(centrality, iToG)
+  #pragma omp parallel for schedule(dynamic) shared(centrality, iToG)
   for (int j = 0; j < numVertices; j++) {
     // map each index value back to the graph vertex id
     #pragma omp critical(centralityUpdate)
@@ -58,7 +58,7 @@ Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
   int chunkBeg = mpi_rank * chunkSize;
   int chunkEnd = chunkBeg + chunkSize - 1;
 
-  #pragma omp parallel for schedule(static) default(none) \
+  #pragma omp parallel for schedule(dynamic) default(none) \
           firstprivate(chunkBeg, chunkEnd, numVertices, i, iToG, gToI) \
           shared(graph, centrality, shortestPath, distance, pairDependency)
   for (int s = chunkBeg; s < chunkEnd; s++) {
@@ -102,7 +102,7 @@ Graph::centrality_T parallelBrandesCentrality(Graph graph, int mpi_rank,
       neighbors = graph.getNeighbors(iToG[v]);
       }
 
-      #pragma omp parallel for schedule(static) firstprivate(v, neighbors) \
+      #pragma omp parallel for schedule(dynamic) firstprivate(v, neighbors) \
               shared(bfsQueue, shortestPath, predecessors)
       for (i = 0; i < neighbors.size(); i++) {
         int w, dw, dv;
@@ -253,14 +253,14 @@ int main(int argc, char **argv) {
   Graph graph = Graph(ROOT_RANK, DIM);
 
   // read the whole graph into memory for each processor
-  printf("building graph from file...\n");
+  //printf("building graph from file...\n");
   //graph.buildGraphFromFile("data/gplus_combined.txt");
   //graph.buildGraphFromFile("data/facebook_combined.txt");
   graph.buildRandomGraph();
 
   // figure out centrality metrics for part of the vertices depending on
   // mpi_rank
-  printf("calculating centrality...\n");
+  //printf("calculating centrality...\n");
   Graph::centrality_T centrality = parallelBrandesCentrality(graph, mpi_rank,
                                             mpi_size, omp_size);
 
@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
       }
     }
 
-    printf("writing calculations to dot file...\n");
+    //printf("writing calculations to dot file...\n");
     graph.writeAsDotGraph(centrality);
   } else {
     // we know that the c++ std::map structure has a consistent iterator

@@ -1,4 +1,5 @@
-\documentclass[11pt,a4paper,twocolumn,titlepage]{article}
+% \documentclass[11pt,a4paper,twocolumn,titlepage]{article}
+\documentclass[11pt,a4paper,titlepage]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath}
 \usepackage{amsthm}
@@ -183,10 +184,20 @@ sections and shared memory management.
 %     * Moved to facebook graph with 4000 vertices \cite{leskovec2012learning}
 %     * Ended with a gplus graph with 107000 vertices \cite{leskovec2012learning}
 
-\subsection{Simple Solution}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/strong}
+\caption{Strong scaling for betweenness centrality on a synthetic graph with
+  10000 edges}
+\end{figure}
 
-\subsection{Method Based on Brandes'}
-Sam
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/weak}
+\caption{Weak scaling for betweenness centrality on a synthetic graph with
+  100 edges per process}
+\end{figure}
+
 
 
 %% ============================= Results ============================= %%
@@ -200,9 +211,21 @@ Sam
 Sam
 
 \begin{figure}[h]
-\caption{Facebook betweenness centrality calculation}
 \centering
-\includegraphics[width=0.5\textwidth]{figures/facebook}
+\includegraphics[width=0.9\textwidth]{figures/facebook}
+\caption{Facebook betweenness centrality calculation}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/synthetic512_1}
+\caption{Synthetic with 512 edges}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/synthetic64_2}
+\caption{Synthetic with 64 edges}
 \end{figure}
 
 %% ============================= Conclusion ============================= %%

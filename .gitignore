@@ -32,6 +32,12 @@
 *.swp
 *.idea/
 
+# Latex files
+report/project.aux
+report/project.bbl
+report/project.blg
+report/project.log
+
 # Data files that are too large
 data/gplus_combined.txt
 data/twitter_combined.txt

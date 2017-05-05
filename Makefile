@@ -14,9 +14,9 @@ run_single: clean
 
 run_with_graph: clean
 	@mpic++ src/centrality.cpp src/graph.cpp src/utils.cpp -o centrality -fopenmp 2>/dev/null
-	@OMP_NUM_THREADS=16 mpirun -np 8 ./centrality 1024
+	@OMP_NUM_THREADS=16 mpirun -np 8 ./centrality 64
 	@echo "rendering dot graph..."
-	@sfdp -Goverlap_scaling=-10 -Goverlap=prism graph-1.dot -x -Tsvg -o graph-1.svg 2>/dev/null
+	@sfdp -Goverlap_scaling=-10 -Goverlap=prism graph-1.dot -x -Tsvg -o graph-1.svg
 
 run_with_graph_xdot: clean
 	@mpic++ src/centrality.cpp src/graph.cpp src/utils.cpp -o centrality -fopenmp 2>/dev/null

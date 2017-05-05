@@ -3,6 +3,7 @@
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{amssymb}
+\usepackage{graphicx}
 \usepackage[pdftex]{hyperref}
 
 \setlength{\parskip}{1em}
@@ -50,7 +51,8 @@
 % 4.) Experimentation
 %     * Began with synthetic graphs. generated graphs this way
 %     * Moved to facebook graph with 4000 vertices \cite{leskovec2012learning}
-%     * Ended with a gplus graph with 107000 vertices \cite{leskovec2012learning}
+%     * Ended with a gplus graph with 107000 vertices
+%       \cite{leskovec2012learning}
 % 5.) Results
 %     * Challenges of rendering large graphs
 %     * Challenges of validating centrality
@@ -83,25 +85,8 @@
 %     * The type of centrality we focused on was betweenness centrality - it's
 %       a lot of shortest path calculations.
 
-In graph theory, centrality indicates the importance of a vertex in the
-network. This concept is naturally applied on social network analysis. Imagine
-you are producing a new product and want to find beta users. It's simple to let
-users with high centrality to use and spread the news to their reachable
-networks.
+% TODO: Copy from Rui
 
-There are many different definitions of centrality, eg. degree centrality,
-closeness centrality and betweenness centrality. In our project, we will use
-the vertex betweenness centrality, which is defined as:
-\[ g(v) = \sum_{s\neq v \neq t}{\frac{\delta_{st}(v)}{\delta_{st}}} \]
-
-Betweenness centrality quantifies the number of times a node acts as a bridge
-along the shortest path between two other nodes. It's not hard to imagine that
-the computation of centrality is very expensive with all the operations with
-shortest paths. Our goal of this project is parallel such computation and
-leverage the technology of MPI/OPENMP we learned in class.
-
-We will explain two algorithms we use for parallel centrality computation, with
-experiments, result, and analysis. 
 
 
 %% ============================= Related Work ============================= %%
@@ -113,28 +98,8 @@ experiments, result, and analysis.
 %     * Floyd-Warshall $O(V^3)$
 %     * Brandes $O(VE)$
 
-Centrality was first introduced as a measure for quantifying the control of a
-human on the communication between other humans in a social network by Linton
-Freeman\cite{burt2009structural} In his conception. Ever since, the concept has
-drawn many interests in cross-indiscipline area like network analysis and
-social science.
+% TODO: Copy from Rui
 
-Betweenness centralities in a graph involve calculating the shortest paths
-between all pairs of vertices on a graph, which requires $\Theta(V^3)$ time
-with the Floyd–Warshall\cite{Cormen:2001:IA:580470} algorithm. On sparse
-graphs, Johnson's\cite{johnson1977efficient} algorithm may be more efficient,
-taking $O(V^2 \log V + V E)$ time. In the case of unweighted graphs the
-calculations can be done with Brandes' algorithm\cite{brandes2001faster} which
-takes $\Theta(VE)$ time. Normally, these algorithms assume that graphs are
-undirected and connected with the allowance of loops and multiple edges. When
-specifically dealing with network graphs, often graphs are without loops or
-multiple edges to maintain simple relationships (where edges represent
-connections between two people or vertices). In this case, using Brandes'
-algorithm will divide final centrality scores by 2 to account for each shortest
-path being counted twice.
-
-Breadth first search is also a great part in centrality computation as for the
-shortest path part. Parallel BFS algorithms have 
 
 
 %% ============================= Data ============================= %%
@@ -148,11 +113,67 @@ shortest path part. Parallel BFS algorithms have
 %     * Finally, implemented a parallelized version of brandes found here
 %       \cite{bader2006parallel}
 
-\subsection{Representation}
+% TODO(sam): elaborate
+
+\subsection{Challenges}
+
 In our work, we represent graph in sparse adjacency matrix. 
+The largest challenge was handling a graph distributed across processors.
+Trying to partition the graph evenly among the workers could be a project on
+its own. This problem was solved simply by putting the whole graph in shared
+memory.
+
+The next challenge that arose was getting the graph data. During initial
+development, a synthetic graph was used by looping through every vertex for
+each vertex and creating and edge between them with a 25\% probability. Once we
+were comfortable with our implementation we found a graph of Facebook friend
+circles used in a Stanford paper \cite{leskovec2012learning} with 4039 vertices
+and 88234 edges. We then found an even larger dataset of Google+ users used in
+the same paper. This graph has 107614 vertices and 13673453 edges.
 
 
-\subsection{Graph Generation}
+\subsection{Graph Representation}
+
+Initially, the underlying representation we used was a sparse adjacency matrix.
+We thought that this would allow for easier parallelization when performing the
+matrix multiplication. However, it presented a few challenges during
+implementation. First, an $n \times n$ matrix becomes memory demanding, even
+thought most of the values are simply $0$. Second, we used the vertex ids as
+the indices into the $n^2$ array, which didn't work for the Google+ dataset.
+This dataset used $21$ digit long values, which means a separate data structure
+would have been needed to map the vertex ids back to the matrix indices.
+
+Instead, we switched to using an adjacency list to decrease the memory
+footprint and simplify the vertex id handling. This had a few additional
+advantages. With an adjacency list, we could easily figure out the total number
+of vertices that exist in the graph by just getting the size of the list. This
+also made it easy to split work among processors by making each processor
+handle some chunk of the list. This made implementing the Brandes algorithm
+more straightforward as this was the underlying graph representation used in
+that paper.
+
+
+\subsection{Algorithms}
+
+Calculating betweenness centrality can be naively accomplished by calculating
+the shortest path from every vertex to every other vertex. This was our initial
+approach. We 
+
+In this
+implementation, each shortest path calculation can be performed in parallel if
+the entire graph is in memory.
+
+Next we implemented the Brandes
+
+Ultimately, we implemented the parallel version of Brandes' algorithm presented
+as \textit{Algorithm 1} in a paper by Bader and Madduri
+\cite{bader2006parallel}. Fortunately, this algorithm requires very few
+modifications from the original. There was a number of directives, such as
+\texttt{\#pragma omp parallel for}, and the associated declaration of critical
+sections and shared memory management.
+
+
+
 
 
 %% ============================= Methods ============================= %%
@@ -177,6 +198,12 @@ Sam
 %     * Graphs of centrality found
 
 Sam
+
+\begin{figure}[h]
+\caption{Facebook betweenness centrality calculation}
+\centering
+\includegraphics[width=0.5\textwidth]{figures/facebook}
+\end{figure}
 
 %% ============================= Conclusion ============================= %%
 \section{Conclusion} % 5. conclusions and future directions

@@ -35,3 +35,4 @@
 # Data files that are too large
 data/gplus_combined.txt
 data/twitter_combined.txt
+graphs/facebook.svg

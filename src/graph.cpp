@@ -115,7 +115,7 @@ void Graph::writeAsDotGraph(Graph::centrality_T centrality) {
       graphFile << it->first << " [label=\"" << it->first << " - ";
       graphFile << std::fixed << centrality[it->first] << "\"";
       graphFile << " style=filled fillcolor=\"0.000 ";
-      graphFile << std::fixed << centrality[it->first] / 50.0;
+      graphFile << std::fixed << centrality[it->first] / 500.0;
       graphFile << " 1.000\"];\n";
       graphFile << it->first << " -- {";
       std::vector<std::string> neighbors = it->second;

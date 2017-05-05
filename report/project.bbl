@@ -1,23 +1,16 @@
 \begin{thebibliography}{1}
 
-\bibitem{brandes2001faster}
-{\sc Brandes, U.}
-\newblock A faster algorithm for betweenness centrality.
-\newblock {\em Journal of mathematical sociology 25}, 2 (2001), 163--177.
+\bibitem{bader2006parallel}
+{\sc Bader, D.~A., and Madduri, K.}
+\newblock Parallel algorithms for evaluating centrality indices in real-world
+  networks.
+\newblock In {\em Parallel Processing, 2006. ICPP 2006. International
+  Conference on\/} (2006), IEEE, pp.~539--550.
 
-\bibitem{burt2009structural}
-{\sc Burt, R.~S.}
-\newblock {\em Structural holes: The social structure of competition}.
-\newblock Harvard university press, 2009.
-
-\bibitem{Cormen:2001:IA:580470}
-{\sc Cormen, T.~H., Stein, C., Rivest, R.~L., and Leiserson, C.~E.}
-\newblock {\em Introduction to Algorithms}, 2nd~ed.
-\newblock McGraw-Hill Higher Education, 2001.
-
-\bibitem{johnson1977efficient}
-{\sc Johnson, D.~B.}
-\newblock Efficient algorithms for shortest paths in sparse networks.
-\newblock {\em Journal of the ACM (JACM) 24}, 1 (1977), 1--13.
+\bibitem{leskovec2012learning}
+{\sc Leskovec, J., and Mcauley, J.~J.}
+\newblock Learning to discover social circles in ego networks.
+\newblock In {\em Advances in neural information processing systems\/} (2012),
+  pp.~539--547.
 
 \end{thebibliography}

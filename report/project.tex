@@ -102,8 +102,9 @@ the computation of centrality is very expensive with all the operations with
 shortest paths. Our goal of this project is parallel such computation and
 leverage the technology of MPI/OPENMP we learned in class.
 
-We will explain two algorithms we use for parallel centrality computation, with
-experiments result and analysis. 
+In this report, we will first introduce data preparation and graph
+representation. Then explain the algorithms we are using with performance
+experiments.
 
 
 
@@ -139,7 +140,7 @@ path being counted twice.
 Breadth first search is also a great part in centrality computation as for the
 shortest path part. Parallel BFS algorithms attracts many researchers to
 explore, among those, \cite{beamer2013direction} proposed a two-direction way
-to do BFS. [Sam will add more details]
+to do BFS.
 
 
 
@@ -194,7 +195,7 @@ At first, the underlying representation we used was a sparse adjacency matrix.
 We thought that this would allow for easier parallelization when performing the
 matrix multiplication. However, it presented a few challenges during
 implementation. First, an $n \times n$ matrix becomes memory demanding, even
-thought most of the values are simply $0$. Second, we used the vertex ids as
+though most of the values are simply $0$. Second, we used the vertex ids as
 the indices into the $n^2$ array, which didn't work for the Google+ dataset.
 This dataset used $21$ digit long values, which means a separate data structure
 would have been needed to map the vertex ids back to the matrix indices.
@@ -202,7 +203,7 @@ would have been needed to map the vertex ids back to the matrix indices.
 Instead, we switched to using an adjacency list to decrease the memory
 footprint and simplify the vertex id handling. This had a few additional
 advantages. With an adjacency list, we could easily figure out the total number
-of vertices that exist in the graph by just getting the size of the list. This
+of vertexes that exist in the graph by just getting the size of the list. This
 also made it easy to split work among processors by making each processor
 handle some chunk of the list. This made implementing the Brandes algorithm
 more straightforward as this was the underlying graph representation used in
@@ -221,9 +222,10 @@ section, vertex betweenness centrality is formally defined as:
 
 Calculating betweenness centrality can be naively accomplished by calculating
 the shortest path from every vertex to every other vertex. This was our initial
-approach. We used a breadth first search technique using matrix multiplication
-because it was believed that this would make it easy to parallelize. Using
-matrix multiplication to find the shortest paths behaves as follows:
+approach as we demonstrated during the presentation. We used a breadth first
+search technique using matrix multiplication because it was believed that this
+would make it easy to parallelize. Using matrix multiplication to find the
+shortest paths behaves as follows:
 
 For our $n \times n$ matrix, we initialize a vector of size $n$ to all $0$s. We
 set some arbitrary value to $1$, to be our root node. Then, we simply perform a
@@ -245,8 +247,8 @@ processor, we decided to look into different methods.
 
 We came across a paper by Brandes \cite{brandes2001faster}, which described an
 algorithm for calculating betweenness centrality efficiently. Instead of
-running in $O(V^3)$ time, like the Floyd-Warshall algorithm, this algorithm
-costs $O(VE)$. We implemented this algorithm and tried to find a good way to
+running in $\Theta(V^3)$ time, like the Floyd-Warshall algorithm, this algorithm
+costs $\Theta(VE)$. We implemented this algorithm and tried to find a good way to
 parallelize it. Ultimately, we found a published parallel algorithm that was
 based off of Brandes' algorithm. We implemented the parallel version (presented
 as \textit{Algorithm 1} in a paper by Bader and Madduri
@@ -257,9 +259,6 @@ parallel for}, and the associated declaration of critical sections and shared
 memory management.
 
 All of our experimentation and results are from this implementation.
-
-
-
 
 %% ============================= Methods ============================= %%
 \section{Experimentation} % 3. methods/algorithms
@@ -368,10 +367,13 @@ have high betweenness centrality.
 Looking forward, there are a number of improvements we could make. Our
 scalability results showed poor performance, which is likely due to all of the
 contention over the shared memory. If we had more time, we would like to
-explore different options for distributing the graph across processors. In
-addition we would like to try and find existing datasets that have already
+explore different options for distributing the graph across processors.
+
+In addition we would like to try and find existing datasets that have already
 performed betweenness centrality calculations so that we might validate our
-metrics.
+metrics. Also it would be helpful to try with different graph density and see
+how our algorithms scales in different situations.
+
 
 
 
@@ -383,3 +385,4 @@ metrics.
 
 
 \end{document}
+
